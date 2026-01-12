@@ -553,6 +553,22 @@ const handleCoverChange = async (event) => {
   if (!file) return;
 
   try {
+    console.log('开始上传封面:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      articleId: route.params.id,
+      token: authStore.token ? '已获取' : '未获取',
+      userId: authStore.user?.id,
+      isAuthor: isAuthor.value
+    });
+
+    // 检查是否已登录
+    if (!authStore.token) {
+      ElMessage.error('请先登录');
+      return;
+    }
+
     // 创建 FormData 对象
     const formData = new FormData();
     formData.append('cover_image', file);
@@ -566,11 +582,21 @@ const handleCoverChange = async (event) => {
       body: formData
     });
 
-    if (!response.ok) {
-      throw new Error('更新封面失败');
-    }
+    console.log('服务器响应状态:', response.status);
 
     const data = await response.json();
+    console.log('服务器响应数据:', data);
+
+    if (!response.ok) {
+      // 如果是认证错误，清除过期的 token 并提示用户重新登录
+      if (response.status === 401) {
+        authStore.logout();
+        ElMessage.error('登录已过期，请重新登录');
+        return;
+      }
+      throw new Error(data.message || '更新封面失败');
+    }
+
     if (data.success) {
       // 更新文章数据
       articleStore.currentArticle = {
@@ -584,7 +610,7 @@ const handleCoverChange = async (event) => {
     }
   } catch (error) {
     console.error('更新封面失败:', error);
-    ElMessage.error('更新封面失败，请稍后重试');
+    ElMessage.error(error.message || '更新封面失败，请稍后重试');
   } finally {
     // 重置文件输入
     if (coverInput.value) {

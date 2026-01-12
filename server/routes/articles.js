@@ -32,6 +32,35 @@ const upload = multer({
   }
 });
 
+// Multer 错误处理中间件
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: '文件大小超过限制，最大允许5MB'
+      });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({
+        success: false,
+        message: '文件字段名不正确'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: `文件上传错误: ${err.message}`
+    });
+  }
+  if (err.message === '只允许上传图片文件') {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+  next(err);
+};
+
 // 获取文章列表
 router.get('/', async (req, res) => {
   try {
@@ -740,8 +769,22 @@ router.get('/admin', async (req, res) => {
 });
 
 // 更新文章封面
-router.put('/:id/cover', verifyToken, upload.single('cover_image'), async (req, res) => {
+router.put('/:id/cover', verifyToken, (req, res, next) => {
+  upload.single('cover_image')(req, res, (err) => {
+    if (err) {
+      return handleMulterError(err, req, res, next);
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
+    console.log('更新封面请求:', {
+      id: req.params.id,
+      user: req.user,
+      file: req.file ? req.file.filename : '无文件',
+      originalname: req.file ? req.file.originalname : '无文件'
+    });
+
     const { id } = req.params;
     const user = req.user;
 
@@ -750,6 +793,14 @@ router.put('/:id/cover', verifyToken, upload.single('cover_image'), async (req, 
       return res.status(401).json({
         success: false,
         message: '用户未登录'
+      });
+    }
+
+    // 检查是否上传了文件
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: '请选择要上传的封面图片'
       });
     }
 
@@ -813,6 +864,8 @@ router.put('/:id/cover', verifyToken, upload.single('cover_image'), async (req, 
       }
     }
 
+    console.log('封面更新成功:', updatedArticle.cover_image);
+
     res.json({
       success: true,
       message: '封面更新成功',
@@ -822,7 +875,8 @@ router.put('/:id/cover', verifyToken, upload.single('cover_image'), async (req, 
     console.error('更新封面失败:', error);
     res.status(500).json({
       success: false,
-      message: '更新封面失败，请稍后重试'
+      message: '更新封面失败，请稍后重试',
+      error: error.message
     });
   }
 });
