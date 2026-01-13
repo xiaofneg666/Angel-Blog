@@ -171,60 +171,73 @@ function toggleCursorMenu() {
 
 // 简化的鼠标样式应用函数
 function applyCursorStyle(style) {
-  // 清除所有现有鼠标样式
-  document.body.style.cursor = '';
-  
-  // 移除所有鼠标样式相关的类
-  document.body.className = document.body.className.replace(/cursor-\w+/g, '');
-  
-  // 直接设置鼠标样式，优先级最高
-  let cursorStyle = style;
-  
-  // 根据样式类型设置不同的光标
-  switch (style) {
-    case 'heart':
-      cursorStyle = "url('/static/爱心指针.png') 0 0, pointer";
-      break;
-    case 'star':
-      cursorStyle = "url('/static/五角星.png') 0 0, pointer";
-      break;
-    case 'cat':
-      cursorStyle = "url('/static/猫.png') 0 0, pointer";
-      break;
-    case 'dog':
-      cursorStyle = "url('/static/狗.png') 0 0, pointer";
-      break;
-    case 'unicorn':
-      cursorStyle = "url('/static/独角兽.png') 0 0, pointer";
-      break;
+  // 清除旧的样式元素
+  const oldStyle = document.getElementById('cursor-style');
+  if (oldStyle) {
+    oldStyle.remove();
   }
   
-  // 应用鼠标样式
-  document.body.style.cursor = cursorStyle;
+  // 清除所有现有鼠标样式类
+  document.body.className = document.body.className.replace(/cursor-\w+/g, '');
   
-  // 同时设置所有子元素的鼠标样式
-  const allElements = document.querySelectorAll('*');
-  allElements.forEach(el => {
-    el.style.cursor = cursorStyle;
-  });
+  // 系统默认样式
+  const systemStyles = ['default', 'pointer', 'crosshair', 'text', 'move', 'wait', 'grab'];
+  if (systemStyles.includes(style)) {
+    document.body.classList.add(`cursor-${style}`);
+    return;
+  }
+  
+  // 动漫风格样式 - 支持多种环境
+  const cursorMap = {
+    heart: '爱心指针',
+    star: '五角星',
+    cat: '猫',
+    dog: '狗',
+    unicorn: '独角兽'
+  };
+  
+  // 图片路径 - 自适应不同环境
+  const imageName = cursorMap[style];
+  let imageUrl = '';
+  
+  // 优先使用相对路径，适应生产环境
+  imageUrl = `/static/${imageName}.png`;
+  
+  // 创建简单的样式
+  const css = `
+    body {
+      cursor: url('${imageUrl}') 0 0, auto !important;
+    }
+    * {
+      cursor: inherit !important;
+    }
+  `;
+  
+  // 添加样式到head
+  const styleElement = document.createElement('style');
+  styleElement.id = 'cursor-style';
+  styleElement.textContent = css;
+  document.head.appendChild(styleElement);
 }
 
 // 简化的鼠标预览函数
 function getPreviewCursor(cursorValue) {
-  switch (cursorValue) {
-    case 'heart':
-      return "url('/static/爱心指针.png') 0 0, pointer";
-    case 'star':
-      return "url('/static/五角星.png') 0 0, pointer";
-    case 'cat':
-      return "url('/static/猫.png') 0 0, pointer";
-    case 'dog':
-      return "url('/static/狗.png') 0 0, pointer";
-    case 'unicorn':
-      return "url('/static/独角兽.png') 0 0, pointer";
-    default:
-      return cursorValue;
+  // 动漫风格样式预览
+  const customStyles = ['heart', 'star', 'cat', 'dog', 'unicorn'];
+  if (customStyles.includes(cursorValue)) {
+    const cursorMap = {
+      heart: '爱心指针',
+      star: '五角星',
+      cat: '猫',
+      dog: '狗',
+      unicorn: '独角兽'
+    };
+    const imageName = cursorMap[cursorValue];
+    return `url('/static/${imageName}.png') 0 0, pointer`;
   }
+  
+  // 系统样式直接返回
+  return cursorValue;
 }
 
 function selectCursorStyle(style) {
@@ -373,10 +386,10 @@ button.nav-item:hover {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 8px;
+  margin-top: 2px; /* 减少间隙 */
   background: rgba(40, 44, 52, 0.98);
   color: #fff;
-  min-width: 250px;
+  min-width: 300px; /* 增加宽度 */
   max-height: 400px;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
@@ -652,7 +665,12 @@ body.cursor-grab, body.cursor-grab * {
   cursor: grab !important;
 }
 
-/* 特定元素的鼠标样式 */
+/* 动漫风格自定义鼠标样式 */
+body.cursor-custom, body.cursor-custom * {
+  cursor: inherit !important;
+}
+
+/* 特定元素的鼠标样式 - 确保自定义鼠标样式优先 */
 body *:hover {
   cursor: inherit !important;
 }
