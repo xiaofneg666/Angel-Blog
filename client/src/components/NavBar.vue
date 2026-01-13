@@ -187,7 +187,7 @@ function applyCursorStyle(style) {
     return;
   }
   
-  // 动漫风格样式 - 支持多种环境
+  // 动漫风格样式 - 使用简单可靠的实现
   const cursorMap = {
     heart: '爱心指针',
     star: '五角星',
@@ -196,44 +196,70 @@ function applyCursorStyle(style) {
     unicorn: '独角兽'
   };
   
-  // 图片路径 - 自适应不同环境
+  // 使用相对路径
   const imageName = cursorMap[style];
-  let imageUrl = '';
+  const imageUrl = `/static/${imageName}.png`;
   
-  // 优先使用相对路径，适应生产环境
-  imageUrl = `/static/${imageName}.png`;
+  // 创建样式元素，使用!important确保优先级
+  const styleElement = document.createElement('style');
+  styleElement.id = 'cursor-style';
   
-  // 创建简单的样式
-  const css = `
-    body {
-      cursor: url('${imageUrl}') 0 0, auto !important;
-    }
+  // 添加CSS规则，确保所有元素都使用自定义光标
+  styleElement.textContent = `
     * {
-      cursor: inherit !important;
+      cursor: url('${imageUrl}') 0 0, pointer !important;
+    }
+    body {
+      cursor: url('${imageUrl}') 0 0, pointer !important;
     }
   `;
   
   // 添加样式到head
-  const styleElement = document.createElement('style');
-  styleElement.id = 'cursor-style';
-  styleElement.textContent = css;
   document.head.appendChild(styleElement);
+  
+  // 添加调试信息
+  console.log('Applied custom cursor:', style, 'using image:', imageUrl);
+  
+  // 验证图片是否可以加载
+  const img = new Image();
+  img.onload = () => {
+    console.log('Cursor image loaded successfully:', imageUrl);
+    console.log('Image dimensions:', img.width, 'x', img.height, 'px');
+    
+    // 检查图片尺寸，浏览器对自定义光标的尺寸通常有限制（128x128像素）
+    if (img.width > 128 || img.height > 128) {
+      console.warn('⚠️  Cursor image warning:', imageUrl);
+      console.warn('   Image size:', img.width, 'x', img.height, 'px');
+      console.warn('   Recommended size: ≤ 128x128 px');
+      console.warn('   Solution: Resize the image using an online tool like:');
+      console.warn('   https://resizeimage.net/ or https://www.iloveimg.com/resize-image');
+    }
+  };
+  
+  img.onerror = (error) => {
+    console.error('❌ Failed to load cursor image:', imageUrl);
+    console.error('   Error:', error);
+    console.error('   Please check if the image exists at the specified path.');
+    // 加载失败时使用默认指针
+    document.body.style.cursor = 'pointer';
+  };
+  
+  img.src = imageUrl;
 }
 
 // 简化的鼠标预览函数
 function getPreviewCursor(cursorValue) {
   // 动漫风格样式预览
-  const customStyles = ['heart', 'star', 'cat', 'dog', 'unicorn'];
-  if (customStyles.includes(cursorValue)) {
-    const cursorMap = {
-      heart: '爱心指针',
-      star: '五角星',
-      cat: '猫',
-      dog: '狗',
-      unicorn: '独角兽'
-    };
-    const imageName = cursorMap[cursorValue];
-    return `url('/static/${imageName}.png') 0 0, pointer`;
+  const cursorMap = {
+    heart: '爱心指针',
+    star: '五角星',
+    cat: '猫',
+    dog: '狗',
+    unicorn: '独角兽'
+  };
+  
+  if (cursorMap[cursorValue]) {
+    return `url('/static/${cursorMap[cursorValue]}.png') 0 0, pointer`;
   }
   
   // 系统样式直接返回
@@ -665,8 +691,8 @@ body.cursor-grab, body.cursor-grab * {
   cursor: grab !important;
 }
 
-/* 动漫风格自定义鼠标样式 */
-body.cursor-custom, body.cursor-custom * {
+/* 自定义鼠标样式支持 */
+body.custom-cursor * {
   cursor: inherit !important;
 }
 
