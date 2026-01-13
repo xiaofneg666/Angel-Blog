@@ -629,24 +629,16 @@ const handleCoverChange = async (event) => {
 /* 全局变量和基础样式 */
 .vue3-style {
   --primary-color: #42b983;
-  --primary-hover: #33a06f;
-  --danger-color: #ff5252;
-  --danger-hover: #e53935;
-  --warning-color: #ffb74d;
-  --warning-hover: #ffa726;
-  --text-color: #2c3e50;
+  --text-color: #333;
   --light-text: #666;
-  --border-color: #eaecef;
+  --border-color: #e0e0e0;
   --bg-color: #fff;
-  --sidebar-bg: #f8f9fa;
+  --sidebar-bg: #f5f5f5;
   --code-bg: #282c34;
-  --hero-overlay: rgba(0, 0, 0, 0.7);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --hero-overlay: rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-md: 6px;
   max-width: 1200px;
   margin: 0 auto;
   color: var(--text-color);
@@ -656,14 +648,12 @@ const handleCoverChange = async (event) => {
 
 /* Hero Section with Background Image */
 .post-hero {
-  height: 300px;
+  height: 250px;
   background-size: cover;
   background-position: center;
   position: relative;
-  margin-bottom: 2rem;
-  border-radius: var(--radius-lg);
+  margin-bottom: 1.5rem;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
 }
 
 .hero-overlay {
@@ -671,66 +661,51 @@ const handleCoverChange = async (event) => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 2rem;
-  background: linear-gradient(transparent, var(--hero-overlay));
+  padding: 1.5rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
   color: white;
 }
 
 /* 可编辑封面样式 */
 .editable-cover {
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.editable-cover:hover {
-  opacity: 0.9;
-  transform: scale(1.01);
 }
 
 .edit-cover-hint {
-  background: rgba(255, 255, 255, 0.2);
+  opacity: 0.8;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.edit-cover-hint:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
 }
 
 .hero-title {
-  font-size: 2.5rem;
-  margin: 0 0 1rem;
+  font-size: 2rem;
+  margin: 0 0 0.5rem;
   color: white;
-  font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .hero-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
-  font-size: 0.9rem;
+  gap: 1rem;
+  font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.9);
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  backdrop-filter: blur(5px);
+  gap: 0.3rem;
 }
 
 /* Post Layout (Main content + Sidebar) */
 .post-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 2rem;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 /* 更新目录样式以匹配图片 */
@@ -740,29 +715,19 @@ const handleCoverChange = async (event) => {
   height: calc(100vh - 84px);
   overflow-y: auto;
   padding-right: 0.5rem;
-  /* 隐藏滚动条 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-/* 隐藏 Webkit 浏览器的滚动条 */
-.post-sidebar::-webkit-scrollbar {
-  display: none;
 }
 
 .sidebar-content {
-  background: #f8f9fa;
-  padding: 1.2rem;
-  border-radius: 8px;
-  border: 1px solid #eaecef;
+  background: var(--sidebar-bg);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
 }
 
 .sidebar-title {
-  font-size: 1.1rem;
-  color: #2c3e50;
-  margin: 0 0 0.8rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #eaecef;
+  font-size: 1rem;
+  color: var(--text-color);
+  margin: 0 0 0.6rem 0;
   font-weight: 600;
 }
 
@@ -816,25 +781,22 @@ const handleCoverChange = async (event) => {
   flex: 1;
   max-width: 900px;
   margin: 0;
-  padding-left: 1rem;
 }
 
 .post-article {
   background: var(--bg-color);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 /* 更新内容区域样式 */
 .post-content {
-  padding: 1.5rem 2rem;
+  padding: 1.5rem;
   line-height: 1.8;
   font-size: 1rem;
-  color: #2c3e50;
+  color: var(--text-color);
   background: #fff;
-  border-radius: 8px;
-  border: 1px solid #eaecef;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
 }
 
 .post-content h1 {
@@ -925,10 +887,10 @@ const handleCoverChange = async (event) => {
 
 /* Article Actions */
 .post-actions-wrapper {
-  padding: 1.5rem 2rem;
+  padding: 1.2rem 1.5rem;
   border-top: 1px solid var(--border-color);
-  background: #f8f9fa;
-  margin-top: 2rem;
+  background: var(--sidebar-bg);
+  margin-top: 1.5rem;
 }
 
 .post-actions {
@@ -941,33 +903,21 @@ const handleCoverChange = async (event) => {
 
 .action-group {
   display: flex;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.8rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: white;
   color: var(--text-color);
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
-}
-
-.action-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.action-btn.active {
-  color: #ff4757;
-  border-color: #ff4757;
-  background: rgba(255, 71, 87, 0.1);
 }
 
 .action-btn:disabled {
@@ -976,131 +926,90 @@ const handleCoverChange = async (event) => {
 }
 
 .action-btn i {
-  font-size: 1.2rem;
-}
-
-.action-btn i.filled {
-  color: #ff4757;
-}
-
-.like-btn:hover:not(:disabled) {
-  color: #ff4757;
-  border-color: #ff4757;
-  background: rgba(255, 71, 87, 0.1);
-}
-
-.favorite-btn:hover:not(:disabled) {
-  color: #ffa502;
-  border-color: #ffa502;
-  background: rgba(255, 165, 2, 0.1);
-}
-
-.favorite-btn.active {
-  color: #ffa502;
-  border-color: #ffa502;
-  background: rgba(255, 165, 2, 0.1);
-}
-
-.favorite-btn i.filled {
-  color: #ffa502;
+  font-size: 1rem;
 }
 
 /* 评论区域整体美化 */
 .comments-section {
-  background: #f7fafb;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(60,60,60,0.06);
+  background: var(--sidebar-bg);
+  border-radius: var(--radius-md);
   padding: 1.5rem;
-  margin: 2.5rem auto 0 auto;
+  margin: 1.5rem auto 0 auto;
   max-width: 820px;
 }
 .comments-header {
-  border-bottom: 2px solid #e6f9f0;
-  margin-bottom: 1.2rem;
-  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 .comments-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2c3e50;
-  letter-spacing: 1px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color);
   display: flex;
   align-items: center;
 }
 .comments-title .icon-comments {
-  color: #42b983;
-  margin-right: 0.6rem;
-  font-size: 1.3em;
+  color: var(--primary-color);
+  margin-right: 0.5rem;
+  font-size: 1.1em;
 }
 .comments-count {
-  background: #e6f9f0;
-  color: #42b983;
-  border-radius: 8px;
-  padding: 0.1em 0.7em;
-  font-size: 1em;
-  margin-left: 0.7em;
+  color: var(--light-text);
+  font-size: 0.9em;
+  margin-left: 0.5em;
 }
 .comment-form {
   display: flex;
   align-items: flex-start;
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 6px rgba(60,60,60,0.06);
-  padding: 1.2rem 1.5rem 1.2rem 1.2rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid #e6f9f0;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
 }
 .user-avatar img {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(60,60,60,0.10);
   object-fit: cover;
-  border: 2px solid #e6f9f0;
 }
 .form-content {
   flex: 1;
-  margin-left: 1.2rem;
+  margin-left: 1rem;
 }
 .comment-textarea {
   width: 100%;
   min-height: 54px;
-  border: 1.5px solid #d6e9e0;
-  border-radius: 7px;
-  padding: 0.7em 1em;
-  font-size: 1.08em;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.6em 1em;
+  font-size: 1rem;
   resize: vertical;
-  background: #f8f9fa;
-  margin-bottom: 0.7em;
-  transition: border 0.2s;
+  background: #fff;
+  margin-bottom: 0.5em;
 }
 .comment-textarea:focus {
-  border: 1.5px solid #42b983;
+  border-color: var(--primary-color);
   outline: none;
-  background: #fff;
 }
 .form-actions {
   display: flex;
   justify-content: flex-end;
 }
 .submit-comment-button {
-  background: #42b983;
+  background: var(--primary-color);
   color: #fff;
   border: none;
-  border-radius: 7px;
-  padding: 0.45em 1.5em;
-  font-size: 1.08em;
+  border-radius: var(--radius-md);
+  padding: 0.45em 1.2em;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(60,60,60,0.04);
-  transition: background 0.2s;
 }
 .submit-comment-button:disabled {
-  background: #b0e5d0;
+  opacity: 0.5;
   cursor: not-allowed;
-}
-.submit-comment-button:hover:not(:disabled) {
-  background: #369e6f;
 }
 .loading-comments {
   display: flex;
@@ -1135,8 +1044,9 @@ const handleCoverChange = async (event) => {
 /* 评论列表样式 */
 .comments-list {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 1rem;
+  border: 1px solid var(--border-color);
 }
 
 /* 分页控件样式 */
