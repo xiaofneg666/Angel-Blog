@@ -67,9 +67,34 @@
         <span class="nav-action-btn" @click="toggleTheme" title="白/夜模式">
           {{ isDark ? '🌙' : '☀️' }}
         </span>
-        <span class="nav-action-btn" @click="toggleCursor" title="切换鼠标样式">
-          🖱️
-        </span>
+        <div class="cursor-dropdown" @click.stop="toggleCursorMenu">
+          <span class="nav-action-btn" title="切换鼠标样式">
+            🖱️
+          </span>
+          <!-- 鼠标样式选择菜单 -->
+          <div class="cursor-menu" v-if="showCursorMenu">
+            <div class="cursor-menu-header">
+              <span>选择鼠标样式</span>
+              <span class="cursor-menu-close" @click="showCursorMenu = false">×</span>
+            </div>
+            <div class="cursor-menu-content">
+              <div 
+                class="cursor-option" 
+                v-for="option in cursorOptions" 
+                :key="option.value"
+                :class="{ active: cursorStyle.value === option.value }"
+                @click="selectCursorStyle(option.value)"
+                :title="option.label"
+              >
+                <div class="cursor-preview" :style="{ cursor: getPreviewCursor(option.value) }">
+                  <span v-if="option.icon" class="cursor-icon">{{ option.icon }}</span>
+                  <img v-else-if="option.image" :src="option.image" alt="" class="cursor-image" />
+                </div>
+                <span class="cursor-label">{{ option.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </nav>
@@ -82,11 +107,31 @@ const authStore = useAuthStore();
 
 const showArticleDropdown = ref(false);
 const showFunDropdown = ref(false);
+const showCursorMenu = ref(false);
 
 const isDark = ref(false);
 const cursorStyle = ref('default');
 
-// 新增：初始化主题
+// 鼠标样式选项 - 包含系统样式和自定义动漫样式
+const cursorOptions = [
+  // 系统默认样式
+  { value: 'default', label: '默认', icon: '🖱️' },
+  { value: 'pointer', label: '指针', icon: '👉' },
+  { value: 'crosshair', label: '十字准星', icon: '➕' },
+  { value: 'text', label: '文本', icon: '📝' },
+  { value: 'move', label: '移动', icon: '↔️' },
+  { value: 'wait', label: '等待', icon: '⏳' },
+  { value: 'grab', label: '抓取', icon: '🤏' },
+  
+  // 动漫风格样式
+  { value: 'heart', label: '爱心指针', image: '/static/爱心指针.png' },
+  { value: 'star', label: '星星指针', image: '/static/五角星.png' },
+  { value: 'cat', label: '猫咪指针', image: '/static/猫.png' },
+  { value: 'dog', label: '狗狗指针', image: '/static/狗.png' },
+  { value: 'unicorn', label: '独角兽指针', image: '/static/独角兽.png' }
+];
+
+// 初始化主题和鼠标样式
 onMounted(() => {
   // 从localStorage获取保存的主题偏好
   const savedTheme = localStorage.getItem('theme');
@@ -94,19 +139,99 @@ onMounted(() => {
     isDark.value = true;
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  
+  // 从localStorage获取保存的鼠标样式偏好
+  const savedCursorStyle = localStorage.getItem('cursorStyle');
+  if (savedCursorStyle) {
+    cursorStyle.value = savedCursorStyle;
+  }
+  
+  // 应用初始鼠标样式
+  applyCursorStyle(cursorStyle.value);
+  
+  // 点击页面其他地方关闭菜单
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.cursor-dropdown')) {
+      showCursorMenu.value = false;
+    }
+  });
 });
 
 function toggleTheme() {
   isDark.value = !isDark.value;
   const theme = isDark.value ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', theme);
-  // 新增：保存主题偏好到localStorage
+  // 保存主题偏好到localStorage
   localStorage.setItem('theme', theme);
 }
 
-function toggleCursor() {
-  cursorStyle.value = cursorStyle.value === 'default' ? 'pointer' : 'default';
-  document.body.style.cursor = cursorStyle.value;
+function toggleCursorMenu() {
+  showCursorMenu.value = !showCursorMenu.value;
+}
+
+// 简化的鼠标样式应用函数
+function applyCursorStyle(style) {
+  // 清除所有现有鼠标样式
+  document.body.style.cursor = '';
+  
+  // 移除所有鼠标样式相关的类
+  document.body.className = document.body.className.replace(/cursor-\w+/g, '');
+  
+  // 直接设置鼠标样式，优先级最高
+  let cursorStyle = style;
+  
+  // 根据样式类型设置不同的光标
+  switch (style) {
+    case 'heart':
+      cursorStyle = "url('/static/爱心指针.png') 0 0, pointer";
+      break;
+    case 'star':
+      cursorStyle = "url('/static/五角星.png') 0 0, pointer";
+      break;
+    case 'cat':
+      cursorStyle = "url('/static/猫.png') 0 0, pointer";
+      break;
+    case 'dog':
+      cursorStyle = "url('/static/狗.png') 0 0, pointer";
+      break;
+    case 'unicorn':
+      cursorStyle = "url('/static/独角兽.png') 0 0, pointer";
+      break;
+  }
+  
+  // 应用鼠标样式
+  document.body.style.cursor = cursorStyle;
+  
+  // 同时设置所有子元素的鼠标样式
+  const allElements = document.querySelectorAll('*');
+  allElements.forEach(el => {
+    el.style.cursor = cursorStyle;
+  });
+}
+
+// 简化的鼠标预览函数
+function getPreviewCursor(cursorValue) {
+  switch (cursorValue) {
+    case 'heart':
+      return "url('/static/爱心指针.png') 0 0, pointer";
+    case 'star':
+      return "url('/static/五角星.png') 0 0, pointer";
+    case 'cat':
+      return "url('/static/猫.png') 0 0, pointer";
+    case 'dog':
+      return "url('/static/狗.png') 0 0, pointer";
+    case 'unicorn':
+      return "url('/static/独角兽.png') 0 0, pointer";
+    default:
+      return cursorValue;
+  }
+}
+
+function selectCursorStyle(style) {
+  cursorStyle.value = style;
+  applyCursorStyle(style);
+  localStorage.setItem('cursorStyle', style);
+  showCursorMenu.value = false;
 }
 </script>
 
@@ -236,6 +361,197 @@ button.nav-item:hover {
   background: rgba(255,255,255,0.15);
   color: #fff;
 }
+
+/* 鼠标样式选择菜单 */
+.cursor-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* 鼠标样式菜单 */
+.cursor-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: rgba(40, 44, 52, 0.98);
+  color: #fff;
+  min-width: 250px;
+  max-height: 400px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeInUp 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 菜单头部 */
+.cursor-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.cursor-menu-close {
+  cursor: pointer;
+  font-size: 20px;
+  transition: color 0.2s;
+}
+
+.cursor-menu-close:hover {
+  color: #ff7675;
+}
+
+/* 菜单内容 */
+.cursor-menu-content {
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+/* 鼠标样式选项 */
+.cursor-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid transparent;
+}
+
+.cursor-option:hover {
+  background: rgba(64,158,255,0.14);
+  transform: translateY(-2px);
+}
+
+.cursor-option.active {
+  background: rgba(64,158,255,0.2);
+  border-color: #409EFF;
+}
+
+/* 鼠标预览区 */
+.cursor-preview {
+  width: 60px;
+  height: 60px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border: 1px solid rgba(0,0,0,0.1);
+  /* 添加一个小点作为鼠标指针的目标，帮助用户看到指针位置 */
+  position: relative;
+  overflow: hidden;
+}
+
+/* 鼠标图标样式 */
+.cursor-icon {
+  font-size: 24px;
+  color: #333;
+  pointer-events: none;
+}
+
+/* 鼠标图片样式 */
+.cursor-image {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.cursor-preview::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cursor-option:hover .cursor-preview {
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 鼠标样式标签 */
+.cursor-label {
+  font-size: 13px;
+  color: #e6e6e6;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+/* 滚动条样式 */
+.cursor-menu-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cursor-menu-content::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+.cursor-menu-content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 3px;
+}
+
+.cursor-menu-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.5);
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .cursor-menu {
+  background: rgba(30, 30, 50, 0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] .cursor-menu-header {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] .cursor-option {
+  background: rgba(255,255,255,0.03);
+}
+
+[data-theme="dark"] .cursor-option:hover {
+  background: rgba(64,158,255,0.1);
+}
+
+[data-theme="dark"] .cursor-option.active {
+  background: rgba(64,158,255,0.15);
+  border-color: #409EFF;
+}
 .dropdown {
   position: relative;
 }
@@ -298,5 +614,56 @@ button.nav-item:hover {
 }
 .dropdown-item:hover .iconfont {
   color: #409EFF;
+}
+</style>
+
+<style>
+/* 自定义鼠标样式 - 高优先级 */
+body {
+  transition: cursor 0.3s ease !important;
+}
+
+/* 鼠标样式类 - 确保高优先级 */
+body.cursor-default, body.cursor-default * {
+  cursor: default !important;
+}
+
+body.cursor-pointer, body.cursor-pointer * {
+  cursor: pointer !important;
+}
+
+body.cursor-crosshair, body.cursor-crosshair * {
+  cursor: crosshair !important;
+}
+
+body.cursor-text, body.cursor-text * {
+  cursor: text !important;
+}
+
+body.cursor-move, body.cursor-move * {
+  cursor: move !important;
+}
+
+body.cursor-wait, body.cursor-wait * {
+  cursor: wait !important;
+}
+
+body.cursor-grab, body.cursor-grab * {
+  cursor: grab !important;
+}
+
+/* 特定元素的鼠标样式 */
+body *:hover {
+  cursor: inherit !important;
+}
+
+/* 输入元素的特殊处理 */
+body input, body textarea, body select {
+  cursor: inherit !important;
+}
+
+/* 链接的特殊处理 */
+body a {
+  cursor: inherit !important;
 }
 </style>
