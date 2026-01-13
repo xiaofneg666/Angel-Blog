@@ -4,14 +4,14 @@ const pool = require('../models/db');
 // 获取文章的所有评论
 exports.getCommentsByPost = async (req, res) => {
   try {
-    const postId = req.params.postId;
+    const articleId = req.params.articleId;
     const [comments] = await pool.query(`
       SELECT c.*, u.username 
       FROM comments c 
       JOIN users u ON c.user_id = u.id 
-      WHERE c.post_id = ? 
+      WHERE c.article_id = ? 
       ORDER BY c.created_at DESC
-    `, [postId]);
+    `, [articleId]);
     
     res.json(comments);
   } catch (error) {
@@ -23,7 +23,7 @@ exports.getCommentsByPost = async (req, res) => {
 // 添加评论
 exports.addComment = async (req, res) => {
   try {
-    const postId = req.params.postId;
+    const articleId = req.params.articleId;
     const { content } = req.body;
     const userId = req.userId;
     
@@ -32,14 +32,14 @@ exports.addComment = async (req, res) => {
     }
     
     // 检查文章是否存在
-    const [posts] = await pool.query('SELECT * FROM articles WHERE id = ?', [postId]);
+    const [posts] = await pool.query('SELECT * FROM articles WHERE id = ?', [articleId]);
     if (posts.length === 0) {
       return res.status(404).json({ message: '文章未找到' });
     }
     
     const [result] = await pool.query(
-      'INSERT INTO comments (content, user_id, post_id) VALUES (?, ?, ?)',
-      [content, userId, postId]
+      'INSERT INTO comments (content, user_id, article_id) VALUES (?, ?, ?)',
+      [content, userId, articleId]
     );
     
     res.status(201).json({ message: '评论添加成功', commentId: result.insertId });

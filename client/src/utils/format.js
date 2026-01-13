@@ -1,6 +1,6 @@
 /**
  * 格式化日期
- * @param {string|Date} dateString - 日期字符串或Date对象
+ * @param {string|Date|number} dateString - 日期字符串、Date对象或时间戳
  * @returns {string} 格式化后的日期字符串
  */
 export const formatDate = (dateString) => {
@@ -15,37 +15,50 @@ export const formatDate = (dateString) => {
       return dateString;
     }
 
+    let dateObj;
+    
     // 处理时间戳
     if (typeof dateString === 'number') {
-      dateString = new Date(dateString);
+      dateObj = new Date(dateString);
     }
-
+    // 处理Date对象
+    else if (dateString instanceof Date) {
+      dateObj = dateString;
+    }
     // 处理字符串日期
-    if (typeof dateString === 'string') {
-      // 处理 MySQL datetime 格式 (YYYY-MM-DD HH:mm:ss)
-      if (dateString.includes('T')) {
-        dateString = dateString.replace('T', ' ').split('.')[0];
+    else if (typeof dateString === 'string') {
+      // 尝试直接使用原始字符串创建Date对象
+      dateObj = new Date(dateString);
+      
+      // 如果解析失败，尝试处理不同格式
+      if (isNaN(dateObj.getTime())) {
+        // 处理 MySQL datetime 格式 (YYYY-MM-DD HH:mm:ss)
+        if (dateString.includes(' ')) {
+          const [datePart, timePart] = dateString.split(' ');
+          dateObj = new Date(`${datePart}T${timePart}`);
+        }
       }
-      dateString = new Date(dateString);
     }
 
     // 检查日期是否有效
-    if (isNaN(dateString.getTime())) {
-      console.warn('formatDate: 无效的日期:', dateString);
-      return '';
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      console.warn('formatDate: 无效的日期，直接返回原始值:', dateString);
+      // 如果无法解析，直接返回原始时间字符串
+      return String(dateString);
     }
 
     // 使用中文格式显示日期
-    const year = dateString.getFullYear();
-    const month = dateString.getMonth() + 1;
-    const day = dateString.getDate();
-    const hours = dateString.getHours().toString().padStart(2, '0');
-    const minutes = dateString.getMinutes().toString().padStart(2, '0');
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const day = dateObj.getDate();
+    const hours = dateObj.getHours().toString().padStart(2, '0');
+    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
 
     return `${year}年${month}月${day}日 ${hours}:${minutes}`;
   } catch (error) {
     console.error('formatDate 错误:', error);
-    return '';
+    // 出错时直接返回原始时间字符串
+    return String(dateString);
   }
 };
 

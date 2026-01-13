@@ -21,16 +21,53 @@ router.get('/articles/:articleId/comments', async (req, res) => {
 
     const [comments] = await db.query(sql, [req.params.articleId]);
 
-    // 处理评论数据
-    const processedComments = comments.map(comment => ({
-      ...comment,
-      avatar: comment.avatar ? `/uploads/${comment.avatar}` : '/default-avatar.jpg',
-      created_at: new Date(comment.created_at).toISOString()
-    }));
+    // 处理评论数据，构建嵌套结构
+    const processedComments = [];
+    const commentMap = new Map();
+
+    // 第一遍：将所有评论放入map，并初始化replies数组
+    comments.forEach(comment => {
+      comment.replies = [];
+      commentMap.set(comment.id, comment);
+    });
+
+    // 第二遍：构建嵌套结构
+    comments.forEach(comment => {
+      if (comment.parent_id) {
+        // 这是一个回复评论，将其添加到父评论的replies数组中
+        const parentComment = commentMap.get(comment.parent_id);
+        if (parentComment) {
+          parentComment.replies.push(comment);
+        }
+      } else {
+        // 这是一个顶级评论，直接添加到结果数组中
+        processedComments.push(comment);
+      }
+    });
+
+    // 处理评论数据格式
+    const finalComments = processedComments.map(comment => {
+      // 递归处理嵌套评论
+      const processNestedComments = (comment) => {
+        const processed = {
+          ...comment,
+          avatar: comment.avatar ? `/uploads/${comment.avatar}` : null,
+          created_at: new Date(comment.created_at).toISOString()
+        };
+        
+        if (comment.replies && comment.replies.length > 0) {
+          processed.replies = comment.replies.map(processNestedComments);
+        }
+        
+        return processed;
+      };
+      
+      return processNestedComments(comment);
+    });
 
     res.json({
       success: true,
-      data: processedComments
+      data: finalComments
     });
   } catch (error) {
     console.error('获取评论失败:', error);
@@ -87,7 +124,7 @@ router.post('/articles/:articleId/comments', auth, async (req, res) => {
     `, [result.insertId]);
 
     const comment = comments[0];
-    comment.avatar = comment.avatar ? `/uploads/${comment.avatar}` : '/default-avatar.jpg';
+    comment.avatar = comment.avatar ? `/uploads/${comment.avatar}` : null;
     comment.created_at = new Date(comment.created_at).toISOString();
 
     res.json({

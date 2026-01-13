@@ -398,6 +398,9 @@ onMounted(() => {
       }, 100)
     }
   })
+  
+  // 加载评论
+  loadComments()
 })
 
 onBeforeUnmount(() => {
@@ -411,7 +414,8 @@ async function loadComments() {
   try {
     const res = await fetchComments(route.params.id)
     if (res.success) {
-      comments.value = res.data
+      // 直接使用后端返回的嵌套结构数据
+      comments.value = res.data;
     } else {
       commentsError.value = res.message || '加载评论失败'
     }
@@ -441,7 +445,7 @@ async function submitComment() {
 // 回复评论
 async function handleAddComment(replyData) {
   if (!replyData.content) return
-    try {
+  try {
     const res = await addCommentApi(route.params.id, replyData)
     if (res.success) {
       await loadComments()
@@ -537,7 +541,8 @@ function getUserAvatar() {
     }
     return authStore.user.avatar;
   }
-  return '/api/head/2222.jpg';
+  // 如果没有头像，使用用户id作为默认头像文件名
+  return `/api/head/${authStore.user?.id || 'default'}.jpg`;
 }
 
 // 处理封面点击
@@ -1005,7 +1010,7 @@ const handleCoverChange = async (event) => {
   background: #f7fafb;
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(60,60,60,0.06);
-  padding: 2.2rem 2.5rem 2rem 2.5rem;
+  padding: 1.5rem;
   margin: 2.5rem auto 0 auto;
   max-width: 820px;
 }
@@ -1125,6 +1130,13 @@ const handleCoverChange = async (event) => {
   margin: 1em 0;
   font-size: 1.08em;
   border: 1px solid #ffd6d6;
+}
+
+/* 评论列表样式 */
+.comments-list {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
 }
 
 /* 分页控件样式 */
