@@ -56,66 +56,20 @@
       </div>
     </div>
     
-    <!-- 子评论渲染 - 简化显示 -->
+    <!-- 子评论渲染 -->
     <div v-if="displayedReplies.length" class="replies">
       <!-- 显示回复列表 -->
-      <div 
+      <CommentItem
         v-for="reply in displayedReplies" 
         :key="reply.id"
-        class="reply-item"
-      >
-        <!-- 简化的回复显示，只包含核心内容 -->
-        <div class="reply-content-simple">
-          <div class="reply-header-simple">
-            <span class="username-simple">{{ reply.username }}</span>
-            <span class="date-simple">{{ formatDate(reply.created_at) }}</span>
-          </div>
-          <div class="comment-content-simple">
-            <span v-if="reply.reply_to_username" class="reply-to-simple">@{{ reply.reply_to_username }}:</span>
-            {{ reply.content }}
-          </div>
-          <div class="reply-actions-simple">
-            <button class="reply-btn-simple" @click="toggleReplyBox(reply.id)" aria-label="回复">
-              <span class="reply-text">回复</span>
-            </button>
-          </div>
-          
-          <!-- 回复的回复输入框 -->
-          <div v-if="replyStates[reply.id] && replyStates[reply.id].showReply" class="reply-form-simple">
-            <template v-if="isAuthenticated">
-              <textarea 
-                v-model="replyStates[reply.id].replyContent" 
-                :placeholder="`回复 @${reply.username}...`" 
-                aria-label="回复内容" 
-                :disabled="replyStates[reply.id].isSubmitting"
-              />
-              <div v-if="replyStates[reply.id].errorMessage" class="error-message">{{ replyStates[reply.id].errorMessage }}</div>
-              <div class="reply-actions">
-                <button 
-                  class="reply-submit" 
-                  @click="submitNestedReply(reply)" 
-                  :disabled="!replyStates[reply.id].replyContent.trim() || replyStates[reply.id].isSubmitting" 
-                  aria-label="发表回复"
-                >
-                  {{ replyStates[reply.id].isSubmitting ? '提交中...' : '发表' }}
-                </button>
-                <button 
-                  class="reply-cancel" 
-                  @click="toggleReplyBox(reply.id)" 
-                  :disabled="replyStates[reply.id].isSubmitting" 
-                  aria-label="取消回复"
-                >
-                  取消
-                </button>
-              </div>
-            </template>
-            <span v-else class="login-tip-simple">请先登录后再回复</span>
-          </div>
-        </div>
-      </div>
+        :comment="reply"
+        :isAuthenticated="isAuthenticated"
+        :isNested="true"
+        @reply="handleNestedReply"
+      />
       
       <!-- 折叠/展开按钮 -->
-      <div v-if="(Array.isArray(props.comment.replies) ? props.comment.replies : []).length > 2" class="more-replies">
+      <div v-if="(Array.isArray(props.comment.replies) ? props.comment.replies : []).length > 2 && !props.isNested" class="more-replies">
         <button 
           class="more-replies-btn" 
           @click="showAllReplies = !showAllReplies" 
@@ -153,6 +107,10 @@ const props = defineProps({
     })
   },
   isAuthenticated: {
+    type: Boolean,
+    default: false
+  },
+  isNested: {
     type: Boolean,
     default: false
   }
@@ -228,6 +186,12 @@ const toggleReplyBox = (replyId) => {
   replyStates.value[replyId].showReply = !replyStates.value[replyId].showReply;
 }
 
+// 处理嵌套回复
+const handleNestedReply = (replyData) => {
+  // 直接转发reply事件给父组件
+  emit('reply', replyData)
+}
+
 // 提交嵌套回复
 const submitNestedReply = async (reply) => {
   // 确保响应式赋值
@@ -251,7 +215,7 @@ const submitNestedReply = async (reply) => {
     emit('reply', {
       content,
       parent_id: reply.id,
-      root_id: reply.root_id || props.comment.id, // 确保root_id始终是主评论ID
+      root_id: reply.root_id || props.comment.root_id || props.comment.id, // 确保root_id始终是评论树的最顶层ID
       reply_to_user_id: reply.user_id,
       reply_to_username: reply.username
     })
@@ -278,6 +242,51 @@ const submitNestedReply = async (reply) => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 嵌套回复样式 */
+.comment-item:deep(.comment-item) {
+  margin-bottom: 12px;
+  padding: 16px;
+  background: #F5F0E6;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 嵌套回复的头像 */
+.comment-item:deep(.comment-item .avatar) {
+  width: 44px;
+  height: 44px;
+}
+
+/* 嵌套回复的用户名 */
+.comment-item:deep(.comment-item .username) {
+  font-size: 15px;
+}
+
+/* 嵌套回复的内容 */
+.comment-item:deep(.comment-item .comment-content) {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+/* 嵌套回复的回复按钮 */
+.comment-item:deep(.comment-item .reply-btn) {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+/* 嵌套回复的回复输入框 */
+.comment-item:deep(.comment-item .reply-form) {
+  margin-left: 56px;
+  padding: 16px;
+}
+
+/* 嵌套回复的回复列表 */
+.comment-item:deep(.comment-item .replies) {
+  margin-left: 56px;
+  padding-left: 16px;
 }
 
 .comment-item::before {
