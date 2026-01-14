@@ -1,6 +1,7 @@
 <!-- 分类 -->
 <template>
   <div class="category-container">
+      <NavBar />
     <h1 class="category-header">文章分类统计</h1>
     
     <div v-if="loading" class="loading">
@@ -40,48 +41,51 @@
     </div>
   </div>
 </template>
-
-<script>
+<script setup>
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import NavBar from '@/components/NavBar.vue';
 
-export default {
-  data() {
-    return {
-      categories: [],
-      loading: true,
-      error: null
+// 定义响应式数据
+const categories = ref([]);
+const loading = ref(true);
+const error = ref(null);
+
+// 获取分类数据
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('/api/articles/categories/stats');
+    if (response.data.success) {
+      categories.value = response.data.data;
+    } else {
+      error.value = '获取分类数据失败';
     }
-  },
-  async created() {
-    try {
-      const response = await axios.get('/api/articles/categories/stats');
-      if (response.data.success) {
-        this.categories = response.data.data;
-      } else {
-        this.error = '获取分类数据失败';
-      }
-    } catch (error) {
-      console.error('获取分类数据失败:', error);
-      this.error = '获取分类数据失败，请稍后重试';
-    } finally {
-      this.loading = false;
-    }
-  },
-  methods: {
-    calculateBarWidth(count) {
-      const maxCount = Math.max(...this.categories.map(c => c.count));
-      return maxCount > 0 ? `${(count / maxCount) * 100}%` : '0%';
-    },
-    getCategoryColor(index) {
-      const colors = [
-        '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
-        '#1abc9c', '#d35400', '#34495e', '#7f8c8d', '#27ae60',
-        '#8e44ad', '#c0392b'
-      ];
-      return colors[index % colors.length];
-    }
+  } catch (err) {
+    console.error('获取分类数据失败:', err);
+    error.value = '获取分类数据失败，请稍后重试';
+  } finally {
+    loading.value = false;
   }
-}
+};
+
+// 计算柱状图宽度
+const calculateBarWidth = (count) => {
+  const maxCount = Math.max(...categories.value.map(c => c.count));
+  return maxCount > 0 ? `${(count / maxCount) * 100}%` : '0%';
+};
+
+// 获取分类颜色
+const getCategoryColor = (index) => {
+  const colors = [
+    '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+    '#1abc9c', '#d35400', '#34495e', '#7f8c8d', '#27ae60',
+    '#8e44ad', '#c0392b'
+  ];
+  return colors[index % colors.length];
+};
+
+// 组件挂载后获取数据
+onMounted(fetchCategories);
 </script>
 
 <style scoped>

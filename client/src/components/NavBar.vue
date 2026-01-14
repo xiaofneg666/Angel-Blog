@@ -26,7 +26,7 @@
           </div>
         </div>
         <!-- 娱乐下拉 -->
-        <div class="nav-item dropdown" @mouseenter="showFunDropdown = true" @mouseleave="showFunDropdown = false">
+        <!-- <div class="nav-item dropdown" @mouseenter="showFunDropdown = true" @mouseleave="showFunDropdown = false">
           <i class="iconfont icon-fun"></i> 娱乐
           <span class="dropdown-arrow" :class="{ open: showFunDropdown }">▼</span>
           <div class="dropdown-menu" v-if="showFunDropdown">
@@ -37,7 +37,10 @@
               <i class="iconfont icon-music"></i> 音乐
             </router-link>
           </div>
-        </div>
+        </div> -->
+            <router-link :to="{ name: 'music' }" class="dropdown-item">
+              <i class="iconfont icon-music"></i> 音乐
+            </router-link>
         <router-link :to="{ name: 'links' }" class="nav-item">
           <i class="iconfont icon-link"></i> 友链
         </router-link>

@@ -1,5 +1,7 @@
 <template>
+  
   <div class="friend-links-container">
+    <NavBar />
     <header class="page-header">
       <h2>友情链接</h2>
       <p class="subtitle">与优秀的人同行，走得更远</p>
@@ -60,7 +62,10 @@
     </div>
   </div>
 </template>
-
+<script setup>
+/* -------------------- 1. 引用 -------------------- */
+import NavBar from '@/components/NavBar.vue'
+</script>
 <style scoped>
 .friend-links-container {
   max-width: 1200px;
