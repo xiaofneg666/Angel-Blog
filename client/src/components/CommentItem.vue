@@ -141,7 +141,8 @@ const displayedReplies = computed(() => {
 const getAvatar = computed(() => {
   const { avatar } = props.comment
   if (!avatar) {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=random`
+    // 如果没有头像，使用固定的R.jpg作为默认头像
+    return '/api/head/R.jpg'
   }
   return avatar.startsWith('/') ? `/api${avatar}` : avatar
 })

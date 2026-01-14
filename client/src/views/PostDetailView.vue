@@ -541,8 +541,8 @@ function getUserAvatar() {
     }
     return authStore.user.avatar;
   }
-  // 如果没有头像，使用用户id作为默认头像文件名
-  return `/api/head/${authStore.user?.id || 'default'}.jpg`;
+  // 如果没有头像，使用固定的R.jpg作为默认头像
+  return '/api/head/R.jpg';
 }
 
 // 处理封面点击
