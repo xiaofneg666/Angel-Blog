@@ -140,37 +140,150 @@ router.post('/articles/:articleId/comments', auth, async (req, res) => {
   }
 });
 
+// 测试路由 - 用于调试DELETE请求
+router.delete('/test-delete', (req, res) => {
+  console.log('=== 测试DELETE请求收到 ===');
+  console.log('请求URL:', req.originalUrl);
+  console.log('请求方法:', req.method);
+  console.log('请求头:', req.headers);
+  res.json({
+    success: true,
+    message: '测试DELETE请求成功',
+    debug: {
+      url: req.originalUrl,
+      method: req.method,
+      headers: req.headers
+    }
+  });
+});
+
 // 删除评论
 router.delete('/comments/:commentId', auth, async (req, res) => {
   try {
     const commentId = req.params.commentId;
-    const userId = req.user.id;
+    // 从auth中间件获取用户ID，确保使用正确的字段名
+    const userId = req.user.userId;
+    
+    // 添加详细的调试日志
+    console.log('=== 删除评论调试信息 ===');
+    console.log('请求URL:', req.originalUrl);
+    console.log('评论ID:', commentId);
+    console.log('当前用户ID:', userId);
+    console.log('req.user:', req.user);
+    console.log('req.headers:', req.headers);
 
-    // 检查评论是否存在且是否属于当前用户
-    const [comments] = await db.query(
-      'SELECT * FROM comments WHERE id = ? AND user_id = ?',
-      [commentId, userId]
+    // 先检查评论是否存在
+    console.log('开始查询评论是否存在...');
+    const [allComments] = await db.query(
+      'SELECT * FROM comments WHERE id = ?',
+      [commentId]
     );
-
-    if (comments.length === 0) {
+    
+    console.log('数据库中找到的评论:', allComments);
+    
+    if (allComments.length === 0) {
+      console.log('评论不存在，返回404');
       return res.status(404).json({
         success: false,
-        message: '评论不存在或无权限删除'
+        message: '评论不存在',
+        debug: {
+          commentId: commentId,
+          query: 'SELECT * FROM comments WHERE id = ?',
+          params: [commentId],
+          result: allComments
+        }
       });
     }
+    
+    const comment = allComments[0];
+    console.log('评论详情:', comment);
+    console.log('评论的user_id:', comment.user_id);
+    console.log('评论的article_id:', comment.article_id);
+    
+    // 检查权限 - 允许文章作者和评论作者删除
+    if (comment.user_id !== userId) {
+      console.log('当前用户不是评论作者，检查是否是文章作者...');
+      // 检查当前用户是否是文章作者
+      const [articles] = await db.query(
+        'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+        [comment.article_id, userId]
+      );
+      
+      console.log('文章查询结果:', articles);
+      
+      if (articles.length === 0) {
+        console.log('当前用户不是文章作者，返回403');
+        return res.status(403).json({
+          success: false,
+          message: '无权限删除该评论',
+          debug: {
+            commentId: commentId,
+            commentUserId: comment.user_id,
+            currentUserId: userId,
+            articleId: comment.article_id,
+            isCommentAuthor: false,
+            isArticleAuthor: articles.length > 0,
+            articleQuery: 'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+            articleQueryParams: [comment.article_id, userId],
+            articleQueryResult: articles
+          }
+        });
+      }
+      console.log('当前用户是文章作者，允许删除');
+    } else {
+      console.log('当前用户是评论作者，允许删除');
+    }
 
-    // 删除评论
-    await db.query('DELETE FROM comments WHERE id = ?', [commentId]);
+    // 获取所有需要删除的评论ID，包括该评论及其所有嵌套回复
+    let commentIdsToDelete = [commentId];
+    console.log('开始获取所有嵌套回复...');
+    
+    // 递归获取所有嵌套回复的ID
+    const getNestedReplies = async (parentId) => {
+      const [replies] = await db.query(
+        'SELECT id FROM comments WHERE parent_id = ?',
+        [parentId]
+      );
+      
+      console.log(`父评论${parentId}的回复:`, replies);
+      
+      for (const reply of replies) {
+        commentIdsToDelete.push(reply.id);
+        await getNestedReplies(reply.id);
+      }
+    };
+    
+    // 获取所有嵌套回复
+    await getNestedReplies(commentId);
+    
+    console.log('需要删除的评论ID列表:', commentIdsToDelete);
+    
+    // 删除所有相关评论
+    if (commentIdsToDelete.length > 0) {
+      console.log('开始删除评论...');
+      const deleteResult = await db.query(
+        `DELETE FROM comments WHERE id IN (${commentIdsToDelete.join(',')})`,
+        []
+      );
+      console.log('删除结果:', deleteResult);
+    }
 
+    console.log('评论删除成功，返回200');
     res.json({
       success: true,
-      message: '评论删除成功'
+      message: '评论删除成功',
+      deletedCommentIds: commentIdsToDelete
     });
   } catch (error) {
-    console.error('删除评论失败:', error);
+    console.error('=== 删除评论发生错误 ===');
+    console.error('错误类型:', error.name);
+    console.error('错误消息:', error.message);
+    console.error('错误堆栈:', error.stack);
     res.status(500).json({
       success: false,
-      message: '删除评论失败'
+      message: '删除评论失败',
+      error: error.message,
+      stack: error.stack
     });
   }
 });

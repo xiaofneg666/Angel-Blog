@@ -43,6 +43,17 @@
             </svg>
             <span>{{ showReply ? '取消回复' : '回复' }}</span>
           </button>
+          <!-- 删除按钮 -->
+          <button 
+            class="action-btn delete-btn" 
+            @click="handleDeleteComment"
+            v-if="canDeleteComment"
+          >
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+            <span>删除</span>
+          </button>
           <button class="action-btn more-btn">
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16">
               <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
@@ -99,36 +110,37 @@
     </div>
 
     <!-- 嵌套回复列表 -->
-    <div v-if="hasReplies" class="replies-container">
-      <div class="replies-list">
-        <CommentItem
-          v-for="reply in displayedReplies"
-          :key="reply.id"
-          :comment="reply"
-          :isAuthenticated="isAuthenticated"
-          :isNested="true"
-          @reply="handleNestedReply"
-        />
+        <div v-if="hasReplies" class="replies-container">
+          <div class="replies-list">
+            <CommentItem
+              v-for="reply in displayedReplies"
+              :key="reply.id"
+              :comment="reply"
+              :isAuthenticated="isAuthenticated"
+              :isNested="true"
+              @reply="handleNestedReply"
+              @delete="handleNestedDelete"
+            />
 
-        <!-- 展开更多回复 -->
-        <div v-if="hasMoreReplies && !isNested" class="more-replies">
-          <button class="expand-btn" @click="showAllReplies = !showAllReplies">
-            <span class="btn-text">
-              {{ showAllReplies ? '收起回复' : `展开 ${comment.replies.length - 2} 条回复` }}
-            </span>
-            <svg 
-              class="chevron" 
-              :class="{ 'expanded': showAllReplies }" 
-              viewBox="0 0 24 24" 
-              width="16" 
-              height="16"
-            >
-              <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
-            </svg>
-          </button>
+            <!-- 展开更多回复 -->
+            <div v-if="hasMoreReplies && !isNested" class="more-replies">
+              <button class="expand-btn" @click="showAllReplies = !showAllReplies">
+                <span class="btn-text">
+                  {{ showAllReplies ? '收起回复' : `展开 ${comment.replies.length - 2} 条回复` }}
+                </span>
+                <svg 
+                  class="chevron" 
+                  :class="{ 'expanded': showAllReplies }" 
+                  viewBox="0 0 24 24" 
+                  width="16" 
+                  height="16"
+                >
+                  <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -136,6 +148,8 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { formatDate } from '@/utils/format'
 import { getUserById } from '@/api/auth'
+import { deleteComment } from '@/api/comments'
+import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps({
   comment: { type: Object, required: true },
@@ -143,13 +157,66 @@ const props = defineProps({
   isNested: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['reply'])
+const emit = defineEmits(['reply', 'delete'])
+const authStore = useAuthStore()
+
+// 初始化authStore，确保用户状态正确
+authStore.init()
 
 const showReply = ref(false)
 const replyContent = ref('')
 const showAllReplies = ref(false)
 const isSubmitting = ref(false)
 const replyInput = ref(null)
+
+// 判断当前用户是否有权限删除评论
+const canDeleteComment = computed(() => {
+  console.log('canDeleteComment调试信息:');
+  console.log('authStore.isAuthenticated:', authStore.isAuthenticated);
+  console.log('authStore.user:', authStore.user);
+  console.log('authStore.user?.userId:', authStore.user?.userId);
+  console.log('props.comment.user_id:', props.comment.user_id);
+  console.log('props.comment:', props.comment);
+  
+  // 临时修改：为了测试，让删除按钮始终显示
+  // return authStore.isAuthenticated && authStore.user?.userId === props.comment.user_id
+  return authStore.isAuthenticated;
+})
+
+// 删除评论
+const handleDeleteComment = async () => {
+  console.log('点击了删除按钮，开始执行删除操作')
+  if (confirm('确定要删除这条评论吗？')) {
+    try {
+      console.log('删除评论，ID:', props.comment.id)
+      // 使用authStore中的token，确保token的正确性
+      if (!authStore.isAuthenticated) {
+        alert('请先登录');
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:3000/api/comments/${props.comment.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`
+        }
+      });
+      
+      const result = await response.json();
+      console.log('删除结果:', result)
+      
+      if (result.success) {
+        emit('delete', props.comment.id);
+        alert('评论删除成功');
+      } else {
+        alert('删除评论失败：' + (result.message || '未知错误'));
+      }
+    } catch (error) {
+      console.error('删除评论失败:', error)
+      alert('删除评论失败：' + error.message);
+    }
+  }
+}
 
 // 计算属性
 const hasReplies = computed(() => {
@@ -272,6 +339,12 @@ const submitReply = async () => {
 }
 
 const handleNestedReply = (data) => emit('reply', data)
+
+// 处理嵌套回复的删除事件
+const handleNestedDelete = (commentId) => {
+  console.log('嵌套回复删除事件，向上传递:', commentId)
+  emit('delete', commentId)
+}
 </script>
 
 <style scoped>
@@ -590,6 +663,17 @@ const handleNestedReply = (data) => emit('reply', data)
   transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
+}
+
+/* 删除按钮特殊样式 */
+.action-btn.delete-btn {
+  color: var(--color-error);
+}
+
+.action-btn.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--color-error);
 }
 
 .action-btn::before {

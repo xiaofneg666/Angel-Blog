@@ -165,12 +165,13 @@
             <div v-else-if="commentsError" class="error-message">{{ commentsError }}</div>
             <div v-else class="comments-list">
               <CommentItem
-                v-for="comment in comments"
-                :key="comment.id"
-                :comment="comment"
-                :isAuthenticated="authStore.isAuthenticated"
-                @reply="handleAddComment"
-              />
+          v-for="comment in comments"
+          :key="comment.id"
+          :comment="comment"
+          :isAuthenticated="authStore.isAuthenticated"
+          @reply="handleAddComment"
+          @delete="handleDeleteComment"
+        />
             </div>
           </section>
         </main>
@@ -454,6 +455,15 @@ async function handleAddComment(replyData) {
     }
   } catch (e) {
     commentsError.value = '回复失败'
+  }
+}
+
+// 删除评论
+async function handleDeleteComment(commentId) {
+  try {
+    await loadComments()
+  } catch (e) {
+    commentsError.value = '删除评论后刷新失败'
   }
 }
 
