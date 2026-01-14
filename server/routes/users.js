@@ -383,21 +383,40 @@ router.put('/:id', async (req, res) => {
 
     // 如果更新了头像，删除旧头像文件（但保留默认头像 2222.jpg）
     if (avatar !== undefined && oldAvatar && oldAvatar !== avatar) {
-      // 提取文件名
+      // 提取文件名 - 增强逻辑，处理各种可能的格式
       let oldFileName = oldAvatar;
-      if (oldAvatar.startsWith('/head/')) {
-        oldFileName = oldAvatar.replace('/head/', '');
-      } else if (oldAvatar.startsWith('/api/head/')) {
+      
+      // 处理不同格式的头像路径
+      if (oldAvatar.startsWith('/api/head/')) {
         oldFileName = oldAvatar.replace('/api/head/', '');
+      } else if (oldAvatar.startsWith('/head/')) {
+        oldFileName = oldAvatar.replace('/head/', '');
+      } else if (oldAvatar.startsWith('/api/uploads/')) {
+        oldFileName = oldAvatar.replace('/api/uploads/', '');
+      } else if (oldAvatar.startsWith('/uploads/')) {
+        oldFileName = oldAvatar.replace('/uploads/', '');
+      } else if (oldAvatar.includes('/')) {
+        // 如果包含斜杠，提取最后一部分作为文件名
+        oldFileName = oldAvatar.split('/').pop();
       }
+      // 如果不包含斜杠，直接使用旧文件名
 
       // 如果不是默认头像，则删除
-      if (oldFileName !== '2222.jpg') {
+      if (oldFileName && oldFileName !== '2222.jpg') {
         const oldFilePath = path.join(uploadDir, oldFileName);
         try {
           if (fs.existsSync(oldFilePath)) {
             fs.unlinkSync(oldFilePath);
             console.log('已删除旧头像:', oldFileName);
+          } else {
+            // 尝试在 uploads 目录中查找
+            const uploadsPath = path.join(__dirname, '../public/uploads', oldFileName);
+            if (fs.existsSync(uploadsPath)) {
+              fs.unlinkSync(uploadsPath);
+              console.log('已删除旧头像(uploads目录):', oldFileName);
+            } else {
+              console.log('旧头像文件不存在:', oldFileName);
+            }
           }
         } catch (error) {
           console.error('删除旧头像失败:', error);

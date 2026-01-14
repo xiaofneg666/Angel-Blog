@@ -5,6 +5,42 @@ const router = express.Router();
 const db = require('../models/db');
 const auth = require('../middleware/auth');
 
+// 获取全站最新评论
+router.get('/comments/latest', async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        c.*,
+        u.username,
+        u.avatar
+      FROM comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      ORDER BY c.created_at DESC
+      LIMIT 10
+    `;
+
+    const [comments] = await db.query(sql);
+
+    // 处理评论数据格式
+    const finalComments = comments.map(comment => ({
+      ...comment,
+      avatar: comment.avatar ? `/head/${comment.avatar}` : `/head/${comment.user_id % 3 === 0 ? 'avatar-1768357856042-934867336.png' : comment.user_id % 3 === 1 ? 'avatar-1768382781202-85417187.png' : 'R.jpg'}`,
+      created_at: new Date(comment.created_at).toLocaleString('zh-CN')
+    }));
+
+    res.json({
+      success: true,
+      data: finalComments
+    });
+  } catch (error) {
+    console.error('获取最新评论失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取最新评论失败'
+    });
+  }
+});
+
 // 获取文章评论
 router.get('/articles/:articleId/comments', async (req, res) => {
   try {
@@ -51,7 +87,7 @@ router.get('/articles/:articleId/comments', async (req, res) => {
       const processNestedComments = (comment) => {
         const processed = {
           ...comment,
-          avatar: comment.avatar ? `/uploads/${comment.avatar}` : null,
+          avatar: comment.avatar ? `/head/${comment.avatar}` : `/head/${comment.user_id % 3 === 0 ? 'avatar-1768357856042-934867336.png' : comment.user_id % 3 === 1 ? 'avatar-1768382781202-85417187.png' : 'R.jpg'}`,
           created_at: new Date(comment.created_at).toISOString()
         };
         
@@ -124,7 +160,7 @@ router.post('/articles/:articleId/comments', auth, async (req, res) => {
     `, [result.insertId]);
 
     const comment = comments[0];
-    comment.avatar = comment.avatar ? `/uploads/${comment.avatar}` : null;
+    comment.avatar = comment.avatar ? `/head/${comment.avatar}` : `/head/${comment.user_id % 3 === 0 ? 'avatar-1768357856042-934867336.png' : comment.user_id % 3 === 1 ? 'avatar-1768382781202-85417187.png' : 'R.jpg'}`,
     comment.created_at = new Date(comment.created_at).toISOString();
 
     res.json({

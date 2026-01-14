@@ -103,12 +103,12 @@
           <router-link v-if="authStore.user" :to="{ name: 'myhomeview', params: { id: authStore.user.id }}">
             <img
               class="profile-pic"
-              :src="authStore.user.avatar || '../../public/2222.jpg'"
+              :src="getUserAvatar(authStore.user.avatar)"
               :alt="authStore.user.username || '用户头像'"
             />
           </router-link>
           <div v-else class="profile-pic-container">
-            <img class="profile-pic" src="../../public/2222.jpg" alt="默认头像" />
+            <img class="profile-pic" :src="getUserAvatar()" alt="默认头像" />
           </div>
 
           <router-link
@@ -143,8 +143,25 @@
 
         <div class="comments">
           <div class="comments-title">最新评论</div>
-          <div>用户A：文章写得很好！</div>
-          <div>用户B：学习了，感谢分享！</div>
+          <div 
+            v-for="comment in comments" 
+            :key="comment.id" 
+            class="comment-item"
+          >
+            <div class="comment-avatar">
+              <img 
+                :src="getUserAvatar(comment.avatar)" 
+                :alt="comment.username" 
+              />
+            </div>
+            <div class="comment-content">
+              <div class="comment-header">
+                <span class="comment-username">{{ comment.username }}</span>
+                <span class="comment-time">{{ comment.created_at }}</span>
+              </div>
+              <div class="comment-text">{{ comment.content }}</div>
+            </div>
+          </div>
         </div>
 
         <div class="stats">
@@ -314,6 +331,59 @@ async function fetchStats() {
   }
 }
 
+/* -------------------- 8. 最新评论 -------------------- */
+const comments = ref([
+  {
+    id: 1,
+    user_id: 1,
+    username: '用户A',
+    avatar: '/2222.jpg',
+    content: '文章写得很好！',
+    created_at: '2026-01-10 15:30:00'
+  },
+  {
+    id: 2,
+    user_id: 2,
+    username: '用户B',
+    avatar: '/2222.jpg',
+    content: '学习了，感谢分享！',
+    created_at: '2026-01-09 10:20:00'
+  }
+])
+
+// 处理用户头像URL
+function getUserAvatar(avatar) {
+  if (!avatar) {
+    return '/2222.jpg';
+  }
+  
+  // 检查头像URL是否已经是完整的URL
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar;
+  }
+  
+  // 处理相对路径
+  if (avatar.startsWith('/api/') || avatar.startsWith('/head/') || avatar.startsWith('/uploads/')) {
+    return avatar;
+  }
+  
+  // 默认情况
+  return `/uploads/${avatar}`;
+}
+
+async function fetchComments() {
+  try {
+    const res = await fetch('http://localhost:3000/api/comments/latest')
+    const data = await res.json()
+    if (data.success) {
+      comments.value = data.data
+    }
+  } catch (e) {
+    console.error('获取评论失败:', e)
+    // 保持模拟数据，避免页面空白
+  }
+}
+
 /* -------------------- 8. 工具函数 -------------------- */
 function handleImageError(e) {
   e.target.src = '/default-cover.jpg'
@@ -328,6 +398,7 @@ onMounted(() => {
   fetchArticles()      // 拉第一页
   startIntersection()  // 启动无限滚动
   fetchStats()
+  fetchComments()      // 获取最新评论
 })
 onBeforeUnmount(() => {
   stopHeroCarousel()
@@ -738,6 +809,86 @@ onBeforeUnmount(() => {
 .stats-title {
   font-weight: bold;
   margin-bottom: 6px;
+}
+
+/* 评论项样式 */
+.comment-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* 评论头像 */
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* 评论内容 */
+.comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 评论头部 */
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* 评论用户名 */
+.comment-username {
+  font-weight: 500;
+  color: #333;
+}
+
+/* 评论时间 */
+.comment-time {
+  font-size: 0.85em;
+  color: #999;
+}
+
+/* 评论文本 */
+.comment-text {
+  color: #666;
+  line-height: 1.5;
+  font-size: 0.95em;
+  word-break: break-word;
+}
+
+/* 深色模式下的评论样式 */
+[data-theme="dark"] .comment-item {
+  border-bottom-color: #333;
+}
+
+[data-theme="dark"] .comment-username {
+  color: #fff;
+}
+
+[data-theme="dark"] .comment-time {
+  color: #666;
+}
+
+[data-theme="dark"] .comment-text {
+  color: #ccc;
 }
 .footer {
   text-align: center;
