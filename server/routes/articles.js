@@ -211,6 +211,122 @@ router.get('/recommended', async (req, res) => {
   }
 });
 
+// 获取分类统计
+router.get('/categories/stats', async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        c.id,
+        c.name,
+        COUNT(a.id) as count
+      FROM categories c
+      LEFT JOIN articles a ON c.id = a.category_id AND a.status = '审核通过'
+      GROUP BY c.id, c.name
+      ORDER BY count DESC
+    `;
+
+    const [categories] = await db.query(sql);
+
+    res.json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    console.error('获取分类统计失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取分类统计失败'
+    });
+  }
+});
+
+// 获取文章归档（按月份分组）
+router.get('/archive', async (req, res) => {
+  try {
+    // 查询所有审核通过的文章，按发布时间倒序
+    const sql = `
+      SELECT 
+        a.id,
+        a.title,
+        a.publish_time,
+        a.view_count,
+        a.cover_image,
+        c.name as category_name
+      FROM articles a 
+      LEFT JOIN users u ON a.author_id = u.id 
+      LEFT JOIN categories c ON a.category_id = c.id
+      WHERE a.status = '审核通过'
+      ORDER BY a.publish_time DESC
+    `;
+
+    const [articles] = await db.query(sql);
+
+    // 按月份分组
+    const archiveData = {};
+    
+    articles.forEach(article => {
+      // 格式化日期为 YYYY-MM 格式
+      const date = new Date(article.publish_time);
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const yearMonthLabel = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+      
+      if (!archiveData[yearMonth]) {
+        archiveData[yearMonth] = {
+          yearMonth,
+          yearMonthLabel,
+          count: 0,
+          articles: []
+        };
+      }
+      
+      // 处理封面图片路径
+      let coverImage = null;
+      if (article.cover_image) {
+        if (!article.cover_image.startsWith('/uploads/')) {
+          coverImage = `/uploads/${article.cover_image}`;
+        } else {
+          coverImage = article.cover_image;
+        }
+      }
+      
+      archiveData[yearMonth].articles.push({
+        id: article.id,
+        title: article.title,
+        date: date.toLocaleDateString('zh-CN'),
+        publish_time: article.publish_time,
+        view_count: article.view_count,
+        category_name: article.category_name,
+        cover_image: coverImage
+      });
+      
+      archiveData[yearMonth].count++;
+    });
+    
+    // 转换为数组并按时间倒序排列
+    const result = Object.values(archiveData).sort((a, b) => {
+      return b.yearMonth.localeCompare(a.yearMonth);
+    });
+    
+    // 获取文章总数
+    const [totalRows] = await db.query('SELECT COUNT(*) as total FROM articles WHERE status = "审核通过"');
+    const total = totalRows[0].total;
+
+    res.json({
+      success: true,
+      data: {
+        archive: result,
+        total: total
+      }
+    });
+  } catch (error) {
+    console.error('获取文章归档失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取文章归档失败'
+    });
+  }
+});
+
 // 获取文章详情
 router.get('/:id', async (req, res) => {
   try {
@@ -475,6 +591,8 @@ router.get('/categories/stats', async (req, res) => {
     });
   }
 });
+
+
 
 // 获取用户文章统计
 router.get('/user/:userId/stats', async (req, res) => {

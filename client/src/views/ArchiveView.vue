@@ -3,114 +3,107 @@
   <div class="archive-page">
     <NavBar></NavBar>
     <header>
-      <h1>文章总览 - 45</h1>
+      <h1>文章总览 - {{ total }}</h1>
     </header>
 
-    <div class="article-list">
-      <div class="article-item" v-for="(article, index) in articles" :key="index">
-        <div class="article-date">{{ article.date }}</div>
-        <div class="article-content">
-          {{ article.content }}
-          <div class="article-images" v-if="article.images">
-            <img 
-              v-for="(img, imgIndex) in article.images" 
-              :key="imgIndex" 
-              :src="img" 
-              alt="文章图片"
-              @click="openImage(img)"
-            >
+    <div class="archive-container" v-if="archiveData.length > 0">
+      <!-- 按月分组的文章列表 -->
+      <div v-for="(monthData, monthIndex) in archiveData" :key="monthIndex" class="archive-month-group">
+        <div class="month-header">
+          <h3>{{ monthData.yearMonthLabel }} <span class="article-count">({{ monthData.count }})</span></h3>
+        </div>
+        <div class="month-articles">
+          <div class="article-item" v-for="(article) in monthData.articles" :key="article.id">
+            <div class="article-date">{{ article.date }}</div>
+            <div class="article-content">
+              <router-link :to="'/posts/' + article.id" class="article-title">{{ article.title }}</router-link>
+              <div class="article-meta" v-if="article.category_name || article.view_count">
+                <span class="category" v-if="article.category_name">{{ article.category_name }}</span>
+                <span class="view-count" v-if="article.view_count">阅读 {{ article.view_count }}</span>
+              </div>
+              <!-- 文章封面 -->
+              <div class="article-cover" v-if="article.cover_image">
+                <img :src="article.cover_image" alt="文章封面">
+              </div>
+            </div>
           </div>
         </div>
-        <div class="article-checkbox">
-          <input type="checkbox" :id="'article'+index" :checked="article.checked">
-          <label :for="'article'+index"></label>
-        </div>
       </div>
     </div>
 
-    <div class="pagination">
-      <div class="page-numbers">
-        <span class="page-arrow">&lt;</span>
-        <span class="page-number active">1</span>
-        <span class="page-number">2</span>
-        <span class="page-number">3</span>
-        <span class="page-ellipsis">...</span>
-        <span class="page-number">9</span>
-        <span class="page-arrow">&gt;</span>
-      </div>
+    <!-- 加载中状态 -->
+    <div class="loading" v-if="loading">
+      <div class="loading-spinner"></div>
+      <p>正在加载归档数据...</p>
     </div>
 
-    <!-- 图片预览模态框 -->
-    <div class="image-modal" v-if="showModal" @click.self="closeModal">
-      <div class="modal-content">
-        <img :src="currentImage" alt="预览图片">
-        <button class="close-btn" @click="closeModal">×</button>
-      </div>
+    <!-- 空状态 -->
+    <div class="empty-state" v-if="!loading && archiveData.length === 0">
+      <p>暂无文章归档</p>
     </div>
   </div>
 </template>
 <script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import NavBar from "@/components/NavBar.vue";
-</script>
-<script>
+import { getArticleArchive } from "@/api/article.js";
 
-export default {
-  name: 'ArchivePage',
-  data() {
-    return {
-      articles: [
-        { 
-          date: '2024-06-09', 
-          content: '朝花夕拾', 
-          checked: false,
-          images: [
-            'https://via.placeholder.com/150x100?text=示例图片1',
-            'https://via.placeholder.com/150x100?text=示例图片2'
-          ]
-        },
-        { 
-          date: '2024-06-10', 
-          content: '突然翻到了23年的日记，一片恍惚的岁月...', 
-          checked: false,
-          images: [
-            'https://via.placeholder.com/150x100?text=日记照片'
-          ]
-        },
-        { date: '2024-06-12', content: '2024-06-12', checked: false },
-        { 
-          date: '2024-06-24', 
-          content: '网络安全(OSI-TCP/IP) 1', 
-          checked: false,
-          images: [
-            'https://via.placeholder.com/150x100?text=网络拓扑图'
-          ]
-        },
-        { 
-          date: '2024-06-25', 
-          content: 'Docker-CentOS基操', 
-          checked: false,
-          images: [
-            'https://via.placeholder.com/150x100?text=Docker示例',
-            'https://via.placeholder.com/150x100?text=CentOS界面'
-          ]
-        }
-      ],
-      showModal: false,
-      currentImage: ''
-    }
-  },
-  methods: {
-    openImage(img) {
-      this.currentImage = img;
-      this.showModal = true;
-      document.body.style.overflow = 'hidden';
-    },
-    closeModal() {
-      this.showModal = false;
-      document.body.style.overflow = '';
-    }
+const router = useRouter();
+
+// 响应式数据
+const articles = ref([]);
+const archiveData = ref([]);
+const total = ref(0);
+const loading = ref(false);
+
+// 生命周期钩子 - 组件挂载时获取数据
+onMounted(() => {
+  fetchArchiveData();
+});
+
+// 格式化文章封面URL
+const formatCoverImage = (coverImage) => {
+  if (!coverImage) return '/1.jpg';
+  
+  // 处理封面图片URL，确保能正确访问
+  if (coverImage.startsWith('http')) {
+    return coverImage;
+  } else if (coverImage.startsWith('/api/')) {
+    return coverImage;
+  } else if (coverImage.startsWith('/uploads/')) {
+    return `/api${coverImage}`;
+  } else {
+    return `/api/uploads/${coverImage}`;
   }
-}
+};
+
+// 获取归档数据
+const fetchArchiveData = async () => {
+  loading.value = true;
+  try {
+    const response = await getArticleArchive();
+    if (response.success) {
+      // 处理返回的归档数据，格式化封面图片URL
+      const processedArchive = response.data.archive.map(monthData => {
+        return {
+          ...monthData,
+          articles: monthData.articles.map(article => ({
+            ...article,
+            cover_image: formatCoverImage(article.cover_image)
+          }))
+        };
+      });
+      
+      archiveData.value = processedArchive;
+      total.value = response.data.total;
+    }
+  } catch (error) {
+    console.error('获取归档数据失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -133,26 +126,60 @@ header h1 {
   border-bottom: 1px solid #eaecef;
 }
 
-.article-list {
-  margin-bottom: 20px;
+/* 归档容器 */
+.archive-container {
+  margin-bottom: 30px;
 }
 
+/* 月份分组 */
+.archive-month-group {
+  margin-bottom: 30px;
+}
+
+/* 月份标题 */
+.month-header {
+  margin-bottom: 15px;
+}
+
+.month-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.article-count {
+  font-size: 14px;
+  font-weight: normal;
+  color: #7f8c8d;
+}
+
+/* 月份文章列表 */
+.month-articles {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+/* 文章项 */
 .article-item {
   display: flex;
   align-items: flex-start;
   padding: 16px 18px;
-  margin-bottom: 12px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.article-item:last-child {
+  border-bottom: none;
 }
 
 .article-item:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  transform: translateY(-2px);
+  background-color: #fafafa;
 }
 
 .article-date {
@@ -161,154 +188,91 @@ header h1 {
   font-size: 14px;
   flex-shrink: 0;
   font-family: 'Courier New', monospace;
+  padding-top: 2px;
 }
 
 .article-content {
   flex-grow: 1;
-  font-size: 15px;
-  line-height: 1.5;
-  color: #34495e;
-  padding-right: 30px;
+  padding-right: 10px;
 }
 
-.article-images {
+.article-title {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #34495e;
+  text-decoration: none;
+  transition: color 0.2s;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.article-title:hover {
+  color: #3498db;
+}
+
+.article-meta {
+  font-size: 12px;
+  color: #95a5a6;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 15px;
+  align-items: center;
+}
+
+.article-meta .category {
+  background-color: #ecf0f1;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #7f8c8d;
+}
+
+.article-meta .view-count {
+  color: #95a5a6;
+}
+
+/* 文章封面 */
+.article-cover {
   margin-top: 10px;
 }
 
-.article-images img {
-  width: 150px;
-  height: 100px;
+.article-cover img {
+  width: 200px;
+  max-height: 150px;
   object-fit: cover;
   border-radius: 4px;
-  cursor: pointer;
-  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.article-images img:hover {
-  transform: scale(1.03);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.article-checkbox {
-  position: absolute;
-  right: 18px;
-  top: 16px;
-}
-
-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #ddd;
-  border-radius: 5px;
-  outline: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-input[type="checkbox"]:hover {
-  border-color: #3498db;
-}
-
-input[type="checkbox"]:checked {
-  background-color: #3498db;
-  border-color: #3498db;
-}
-
-input[type="checkbox"]:checked::after {
-  content: "✓";
-  color: white;
-  position: absolute;
-  left: 4px;
-  top: -1px;
-  font-size: 14px;
-}
-
-.pagination {
-  margin: 30px 0;
-}
-
-.page-numbers {
+/* 加载状态 */
+.loading {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-.page-number, .page-arrow, .page-ellipsis {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.page-number {
-  background-color: #f1f3f5;
-  color: #495057;
-}
-
-.page-number:hover {
-  background-color: #e9ecef;
-}
-
-.page-number.active {
-  background-color: #3498db;
-  color: white;
-}
-
-.page-arrow {
-  background-color: transparent;
-  color: #3498db;
-  font-weight: bold;
-}
-
-.page-ellipsis {
-  background-color: transparent;
-  color: #adb5bd;
-  cursor: default;
-}
-
-/* 图片预览模态框 */
-.image-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  padding: 50px 0;
+  color: #7f8c8d;
 }
 
-.modal-content {
-  position: relative;
-  max-width: 90%;
-  max-height: 90%;
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
 }
 
-.modal-content img {
-  max-width: 100%;
-  max-height: 80vh;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.close-btn {
-  position: absolute;
-  top: -40px;
-  right: 0;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-  padding: 0 10px;
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 50px 0;
+  color: #7f8c8d;
+  font-size: 16px;
 }
 
 /* 响应式设计 */
@@ -327,19 +291,12 @@ input[type="checkbox"]:checked::after {
     margin-bottom: 8px;
   }
   
-  .article-checkbox {
-    position: static;
-    margin-top: 10px;
-    align-self: flex-end;
+  .month-header h3 {
+    font-size: 16px;
   }
   
-  .article-images img {
-    width: 100%;
-    height: auto;
-  }
-  
-  .page-numbers {
-    flex-wrap: wrap;
+  .article-title {
+    font-size: 14px;
   }
 }
 </style>

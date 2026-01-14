@@ -141,3 +141,14 @@ export async function getMyArticles(userId) {
     throw new Error(error.response?.data?.message || '获取我的文章失败');
   }
 }
+
+// 获取文章归档
+export const getArticleArchive = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/articles/archive`);
+    return response.data;
+  } catch (error) {
+    console.error('获取文章归档错误:', error);
+    throw new Error('获取文章归档失败');
+  }
+};
