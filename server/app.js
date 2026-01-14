@@ -149,9 +149,9 @@ app.get('*', (req, res) => {
 // 设置服务器端口
 const PORT = process.env.PORT || 3000;
 
-// 启动服务器
-app.listen(PORT, () => {
-  console.log(`服务器运行在 http://localhost:${PORT}`);
+// 启动服务器，监听所有接口
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`服务器运行在 http://localhost:${PORT} 和 http://0.0.0.0:${PORT}`);
 });
 
 // 导出app用于测试
