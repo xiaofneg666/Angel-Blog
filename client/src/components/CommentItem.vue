@@ -8,8 +8,8 @@
           <img :src="getAvatar" alt="用户头像" class="user-avatar" />
           <div v-if="!isNested" class="avatar-glow"></div>
         </div>
-        <!-- 引导线（只在嵌套评论的第一层显示） -->
-        <div v-if="!isNested && hasReplies" class="thread-connector"></div>
+        <!-- 引导线已隐藏 -->
+        <!-- <div v-if="!isNested && hasReplies" class="thread-connector"></div> -->
       </div>
 
       <!-- 内容区域 -->
@@ -306,46 +306,46 @@ const handleNestedReply = (data) => emit('reply', data)
   --color-info: #3B82F6;
   
   /* 阴影效果 - 更轻量 */
-  --shadow-card: 0 2px 12px rgba(139, 87, 42, 0.03);
-  --shadow-hover: 0 4px 16px rgba(139, 87, 42, 0.06);
-  --shadow-float: 0 6px 24px rgba(139, 87, 42, 0.08);
-  --shadow-inner: inset 0 1px 4px rgba(0, 0, 0, 0.03);
+  --shadow-card: 0 1px 6px rgba(139, 87, 42, 0.02);
+  --shadow-hover: 0 2px 8px rgba(139, 87, 42, 0.04);
+  --shadow-float: 0 3px 12px rgba(139, 87, 42, 0.06);
+  --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.02);
   
   /* 圆角设计 - 更小巧 */
-  --radius-card: 10px;
-  --radius-input: 8px;
-  --radius-btn: 6px;
+  --radius-card: 8px;
+  --radius-input: 6px;
+  --radius-btn: 4px;
   --radius-avatar: 50%;
   
   /* 动画效果 */
-  --transition-fast: 0.2s ease;
-  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* 间距设计 - 更紧凑 */
-  --spacing-xs: 2px;
-  --spacing-sm: 4px;
-  --spacing-md: 8px;
-  --spacing-lg: 12px;
-  --spacing-xl: 16px;
+  --spacing-xs: 1px;
+  --spacing-sm: 2px;
+  --spacing-md: 4px;
+  --spacing-lg: 8px;
+  --spacing-xl: 12px;
   
   /* 字体大小 - 更小 */
-  --font-xs: 10px;
-  --font-sm: 11px;
-  --font-base: 12px;
-  --font-md: 13px;
-  --font-lg: 14px;
+  --font-xs: 9px;
+  --font-sm: 10px;
+  --font-base: 11px;
+  --font-md: 12px;
+  --font-lg: 13px;
   
   position: relative;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 /* ====== 主评论卡片 ====== */
 .comment-card {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   background: var(--color-background);
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: var(--radius-card);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
@@ -398,8 +398,8 @@ const handleNestedReply = (data) => emit('reply', data)
 
 .avatar-frame {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -441,21 +441,14 @@ const handleNestedReply = (data) => emit('reply', data)
   opacity: 1;
 }
 
-/* 回复连接线条 - 更细 */
+/* 隐藏回复连接线条 */
 .thread-connector {
-  position: absolute;
-  top: 48px;
-  left: 18px;
-  width: 2px;
-  height: calc(100% - 36px);
-  background: linear-gradient(to bottom, var(--color-primary), transparent);
-  opacity: 0.4;
-  transition: opacity var(--transition-fast);
+  display: none;
 }
 
-.comment-card:hover .thread-connector {
+/* .comment-card:hover .thread-connector {
   opacity: 0.6;
-}
+} */
 
 /* ====== 内容区域 ====== */
 .content-wrapper {
@@ -464,20 +457,20 @@ const handleNestedReply = (data) => emit('reply', data)
 }
 
 .comment-header {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
 
 .username {
   font-weight: 600;
   color: var(--color-primary);
-  font-size: 14px;
+  font-size: 12px;
   position: relative;
   transition: all var(--transition-fast);
 }
@@ -522,12 +515,12 @@ const handleNestedReply = (data) => emit('reply', data)
 /* 时间戳美化 - 更小 */
 .timestamp {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 10px;
   margin-left: auto;
   transition: all var(--transition-fast);
   position: relative;
-  padding: 1px 6px;
-  border-radius: 10px;
+  padding: 1px 4px;
+  border-radius: 8px;
 }
 
 .timestamp:hover {
@@ -537,17 +530,17 @@ const handleNestedReply = (data) => emit('reply', data)
 
 /* ====== 评论内容 ====== */
 .comment-content {
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--color-text);
   word-wrap: break-word;
   white-space: pre-wrap;
-  margin-bottom: 8px;
-  padding: 6px 8px;
+  margin-bottom: 6px;
+  padding: 4px 6px;
   border-radius: var(--radius-input);
   background: rgba(229, 217, 197, 0.05);
   transition: all var(--transition-fast);
-  border-left: 2px solid transparent;
+  border-left: 1px solid transparent;
 }
 
 .comment-content:hover {
@@ -577,21 +570,21 @@ const handleNestedReply = (data) => emit('reply', data)
 .comment-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 8px;
+  gap: 4px;
+  padding-top: 6px;
   border-top: 1px solid var(--color-border-light);
 }
 
 .action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 3px;
+  padding: 3px 6px;
   border: 1px solid transparent;
   background: transparent;
   border-radius: var(--radius-btn);
   color: var(--color-text-light);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -637,7 +630,7 @@ const handleNestedReply = (data) => emit('reply', data)
 
 /* ====== 回复输入框 ====== */
 .reply-form {
-  margin-top: 12px;
+  margin-top: 8px;
   animation: slideIn var(--transition-normal);
 }
 
@@ -645,7 +638,7 @@ const handleNestedReply = (data) => emit('reply', data)
   background: var(--color-reply-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  padding: 12px;
+  padding: 10px;
   transition: all var(--transition-normal);
   box-shadow: var(--shadow-inner);
 }
@@ -660,16 +653,16 @@ const handleNestedReply = (data) => emit('reply', data)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .reply-hint {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-primary);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .reply-hint::before {
@@ -718,23 +711,23 @@ const handleNestedReply = (data) => emit('reply', data)
 .input-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 /* 按钮美化 */
 .btn {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: var(--radius-btn);
   border: 1px solid transparent;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .btn::before {
@@ -837,44 +830,45 @@ const handleNestedReply = (data) => emit('reply', data)
 
 /* ====== 嵌套回复 ====== */
 .replies-container {
-  margin-left: 48px;
+  margin-left: 28px;
   position: relative;
-  padding-left: 12px;
+  padding-left: 0;
 }
 
 .replies-list {
   position: relative;
 }
 
-.replies-list::before {
+/* 隐藏嵌套回复连接线 */
+/* .replies-list::before {
   content: '';
   position: absolute;
-  left: -18px;
+  left: -14px;
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 1px;
   background: linear-gradient(to bottom, 
     transparent,
     var(--color-primary) 20%,
     var(--color-secondary) 80%,
     transparent
   );
-  opacity: 0.6;
-}
+  opacity: 0.5;
+} */
 
 /* 嵌套评论的特殊样式 */
 .is-nested {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .is-nested .comment-card {
   background: transparent;
   border: none;
   box-shadow: none;
-  padding: 8px 0 8px 16px;
+  padding: 6px 0 6px 12px;
   margin: 0;
   border-radius: 0;
-  border-left: 3px solid var(--color-border-light);
+  border-left: 2px solid var(--color-border-light);
   transition: all var(--transition-normal);
 }
 
@@ -891,8 +885,8 @@ const handleNestedReply = (data) => emit('reply', data)
 }
 
 .is-nested .avatar-frame {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
 }
 
 .is-nested .user-avatar, .is-nested .user-avatar img {
@@ -922,7 +916,7 @@ const handleNestedReply = (data) => emit('reply', data)
 
 /* ====== 展开更多按钮 ====== */
 .more-replies {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   justify-content: center;
 }
@@ -930,13 +924,13 @@ const handleNestedReply = (data) => emit('reply', data)
 .expand-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 12px;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: 16px;
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -1025,39 +1019,54 @@ const handleNestedReply = (data) => emit('reply', data)
 /* ====== 响应式设计 ====== */
 @media (max-width: 768px) {
   .comment-card {
-    padding: 16px;
-    gap: 12px;
+    padding: 8px 10px;
+    gap: 6px;
   }
   
   .replies-container {
-    margin-left: 40px;
+    margin-left: 32px;
+    padding-left: 6px;
   }
   
   .avatar-frame {
-    width: 40px;
-    height: 40px;
+    width: 26px;
+    height: 26px;
   }
   
   .is-nested .avatar-frame {
-    width: 32px;
-    height: 32px;
+    width: 22px;
+    height: 22px;
   }
 }
 
 @media (max-width: 480px) {
   .comment-actions {
     flex-wrap: wrap;
+    gap: 3px;
   }
   
   .user-info {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: 2px;
   }
   
   .timestamp {
     margin-left: 0;
-    font-size: 12px;
+    font-size: 10px;
+  }
+  
+  .comment-content {
+    font-size: 11px;
+    line-height: 1.3;
+    margin-bottom: 4px;
+    padding: 3px 5px;
+  }
+  
+  .action-btn {
+    padding: 2px 5px;
+    font-size: 10px;
+    gap: 2px;
   }
 }
 </style>
