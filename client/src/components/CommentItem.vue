@@ -245,13 +245,14 @@ const submitNestedReply = async (reply) => {
   animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 嵌套回复样式 */
+/* 嵌套回复样式 - 移除框框效果 */
 .comment-item:deep(.comment-item) {
   margin-bottom: 12px;
-  padding: 16px;
-  background: #F5F0E6;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 12px 0 12px 16px;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border-left: 2px solid #E5D9C5;
 }
 
 /* 嵌套回复的头像 */
@@ -281,7 +282,7 @@ const submitNestedReply = async (reply) => {
 /* 嵌套回复的回复输入框 */
 .comment-item:deep(.comment-item .reply-form) {
   margin-left: 56px;
-  padding: 16px;
+  padding: 12px 0 12px 16px;
 }
 
 /* 嵌套回复的回复列表 */
