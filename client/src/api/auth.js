@@ -1,13 +1,14 @@
 /* auth.js - 认证相关API
  */
-import axios from 'axios';
+import apiClient from './axios';
 
-const API_URL = 'http://localhost:3000/api/auth';  // 确保端口3000正确
+const API_URL = '/auth';
+const USERS_URL = '/users';
 
 // 用户登录
 export async function loginUser(username, password) {
   try {
-    const response = await axios.post(`${API_URL}/login`, { username, password });
+    const response = await apiClient.post(`${API_URL}/login`, { username, password });
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || '登录失败');
@@ -17,9 +18,19 @@ export async function loginUser(username, password) {
 // 用户注册
 export async function registerUser(username, email, password) {
   try {
-    const response = await axios.post(`${API_URL}/register`, { username, email, password });
+    const response = await apiClient.post(`${API_URL}/register`, { username, email, password });
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || '注册失败');
+  }
+}
+
+// 根据用户ID获取用户信息
+export async function getUserById(userId) {
+  try {
+    const response = await apiClient.get(`${USERS_URL}/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || '获取用户信息失败');
   }
 }

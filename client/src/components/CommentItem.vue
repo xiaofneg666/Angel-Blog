@@ -1,1050 +1,1063 @@
 <template>
-  <div class="comment-item">
-    <!-- 主评论内容 -->
-    <div class="comment-header">
-      <img :src="getAvatar" alt="用户头像" class="avatar" />
-      <div class="comment-body">
-        <div class="comment-main">
-          <span class="username">{{ comment.username }}</span>
-          <span v-if="comment.tag" class="user-tag">{{ comment.tag }}</span>
+  <div class="comment-item" :class="{ 'is-nested': isNested }">
+    <!-- 评论主体 -->
+    <div class="comment-card" :class="{ 'highlighted': showReply }">
+      <!-- 头像区域 -->
+      <div class="avatar-wrapper">
+        <div class="avatar-frame">
+          <img :src="getAvatar" alt="用户头像" class="user-avatar" />
+          <div v-if="!isNested" class="avatar-glow"></div>
         </div>
+        <!-- 引导线（只在嵌套评论的第一层显示） -->
+        <div v-if="!isNested && hasReplies" class="thread-connector"></div>
+      </div>
+
+      <!-- 内容区域 -->
+      <div class="content-wrapper">
+        <!-- 头部：用户信息 + 时间 -->
+        <div class="comment-header">
+          <div class="user-info">
+            <span class="username">{{ comment.username }}</span>
+            <span v-if="comment.tag" class="user-tag" :class="tagClass">{{ comment.tag }}</span>
+            <span class="timestamp">{{ formatDate(comment.created_at) }}</span>
+          </div>
+        </div>
+
+        <!-- 评论内容 -->
         <div class="comment-content">
-          <span v-if="comment.reply_to_username" class="reply-to">回复 @{{ comment.reply_to_username }}:</span>
+          <span v-if="comment.reply_to_username" class="reply-mention">
+            @{{ comment.reply_to_username }}
+          </span>
           {{ comment.content }}
         </div>
-        <div class="comment-meta">
-          <span class="date">{{ formatDate(comment.created_at) }}</span>
-          <button class="reply-btn" @click="showReply = !showReply" aria-label="回复">
-            <span class="reply-text">回复</span>
+
+        <!-- 操作按钮 -->
+        <div class="comment-actions">
+          <button 
+            class="action-btn reply-btn" 
+            @click="toggleReply"
+            :class="{ 'active': showReply }"
+          >
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
+            </svg>
+            <span>{{ showReply ? '取消回复' : '回复' }}</span>
           </button>
-          <button class="more-btn" aria-label="更多操作">
-            <span class="more-icon">⋯</span>
+          <button class="action-btn more-btn">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16">
+              <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+              <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+            </svg>
           </button>
         </div>
-        
-        <!-- 回复输入框 -->
-        <div v-if="showReply" class="reply-form">
-          <template v-if="isAuthenticated">
-            <textarea 
-              v-model="replyContent" 
-              placeholder="写下你的回复..." 
-              aria-label="回复内容" 
-              :disabled="isSubmitting"
-            />
-            <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-            <div class="reply-actions">
-              <button 
-                class="reply-submit" 
-                @click="submitReply" 
-                :disabled="!replyContent.trim() || isSubmitting" 
-                aria-label="发表回复"
-              >
-                {{ isSubmitting ? '提交中...' : '发表' }}
-              </button>
-              <button 
-                class="reply-cancel" 
-                @click="showReply = false" 
-                :disabled="isSubmitting" 
-                aria-label="取消回复"
-              >
-                取消
-              </button>
+
+        <!-- 回复输入框（平滑展开） -->
+        <transition name="slide-fade">
+          <div v-if="showReply" class="reply-form">
+            <div v-if="isAuthenticated" class="reply-input-group">
+              <div class="input-header">
+                <span class="reply-hint">回复 @{{ comment.username }}</span>
+                <span class="char-counter" :class="{ 'warning': replyContent.length > 180 }">
+                  {{ replyContent.length }}/200
+                </span>
+              </div>
+              <textarea
+                v-model="replyContent"
+                :placeholder="`想对 @${comment.username} 说些什么...`"
+                :disabled="isSubmitting"
+                ref="replyInput"
+                class="reply-textarea"
+                rows="3"
+                maxlength="200"
+              />
+              <div class="input-actions">
+                <button 
+                  class="btn btn-secondary" 
+                  @click="cancelReply"
+                  :disabled="isSubmitting"
+                >
+                  取消
+                </button>
+                <button 
+                  class="btn btn-primary" 
+                  @click="submitReply"
+                  :disabled="!replyContent.trim() || isSubmitting"
+                  :class="{ 'loading': isSubmitting }"
+                >
+                  <span v-if="!isSubmitting">发送回复</span>
+                  <span v-else class="loading-dots">发送中</span>
+                </button>
+              </div>
             </div>
-          </template>
-          <span v-else class="login-tip">请先登录后再回复</span>
-        </div>
+            <div v-else class="auth-prompt">
+              <span>请先 <a href="/login" class="login-link">登录</a> 后参与讨论</span>
+            </div>
+          </div>
+        </transition>
       </div>
     </div>
-    
-    <!-- 子评论渲染 -->
-    <div v-if="displayedReplies.length" class="replies">
-      <!-- 显示回复列表 -->
-      <CommentItem
-        v-for="reply in displayedReplies" 
-        :key="reply.id"
-        :comment="reply"
-        :isAuthenticated="isAuthenticated"
-        :isNested="true"
-        @reply="handleNestedReply"
-      />
-      
-      <!-- 折叠/展开按钮 -->
-      <div v-if="(Array.isArray(props.comment.replies) ? props.comment.replies : []).length > 2 && !props.isNested" class="more-replies">
-        <button 
-          class="more-replies-btn" 
-          @click="showAllReplies = !showAllReplies" 
-          aria-label="{{ showAllReplies ? '收起回复' : '查看全部回复' }}"
-        >
-          {{ showAllReplies ? '收起' : `共${(Array.isArray(props.comment.replies) ? props.comment.replies : []).length}条回复，点击查看` }}
-        </button>
+
+    <!-- 嵌套回复列表 -->
+    <div v-if="hasReplies" class="replies-container">
+      <div class="replies-list">
+        <CommentItem
+          v-for="reply in displayedReplies"
+          :key="reply.id"
+          :comment="reply"
+          :isAuthenticated="isAuthenticated"
+          :isNested="true"
+          @reply="handleNestedReply"
+        />
+
+        <!-- 展开更多回复 -->
+        <div v-if="hasMoreReplies && !isNested" class="more-replies">
+          <button class="expand-btn" @click="showAllReplies = !showAllReplies">
+            <span class="btn-text">
+              {{ showAllReplies ? '收起回复' : `展开 ${comment.replies.length - 2} 条回复` }}
+            </span>
+            <svg 
+              class="chevron" 
+              :class="{ 'expanded': showAllReplies }" 
+              viewBox="0 0 24 24" 
+              width="16" 
+              height="16"
+            >
+              <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { formatDate } from '@/utils/format'
+import { getUserById } from '@/api/auth'
 
-// Props 定义
 const props = defineProps({
-  comment: {
-    type: Object,
-    required: true,
-    default: () => ({
-      id: '',
-      user_id: '',
-      username: '',
-      avatar: '',
-      tag: '',
-      content: '',
-      created_at: '',
-      like_count: 0,
-      replies: [],
-      root_id: '',
-      reply_to_username: '',
-      reply_to_user_id: ''
-    })
-  },
-  isAuthenticated: {
-    type: Boolean,
-    default: false
-  },
-  isNested: {
-    type: Boolean,
-    default: false
-  }
+  comment: { type: Object, required: true },
+  isAuthenticated: { type: Boolean, default: false },
+  isNested: { type: Boolean, default: false }
 })
 
-// 事件定义
 const emit = defineEmits(['reply'])
 
-// 响应式状态
 const showReply = ref(false)
 const replyContent = ref('')
 const showAllReplies = ref(false)
 const isSubmitting = ref(false)
-const errorMessage = ref('')
-
-// 使用ref对象管理所有回复的状态，确保响应式更新
-const replyStates = ref({})
+const replyInput = ref(null)
 
 // 计算属性
-const displayedReplies = computed(() => {
-  // 确保replies总是一个数组
-  const replies = Array.isArray(props.comment.replies) ? props.comment.replies : []
-  return showAllReplies.value 
-    ? replies 
-    : replies.slice(0, 2)
+const hasReplies = computed(() => {
+  return (props.comment.replies || []).length > 0
 })
 
-const getAvatar = computed(() => {
-  const { avatar } = props.comment
-  if (!avatar) {
-    // 如果没有头像，使用固定的R.jpg作为默认头像
-    return '/api/head/R.jpg'
+const displayedReplies = computed(() => {
+  const replies = Array.isArray(props.comment.replies) ? props.comment.replies : []
+  return (showAllReplies.value || props.isNested) ? replies : replies.slice(0, 2)
+})
+
+const hasMoreReplies = computed(() => {
+  return (props.comment.replies || []).length > 2
+})
+
+// 头像URL，支持异步获取最新头像
+const avatarUrl = ref('/api/head/R.jpg')
+
+// 获取用户头像的方法
+const fetchUserAvatar = async () => {
+  const { user_id, avatar, username } = props.comment
+  
+  // 默认头像
+  let newAvatarUrl = '/api/head/R.jpg'
+  
+  if (user_id) {
+    try {
+      // 通过user_id获取最新用户信息
+      const user = await getUserById(user_id)
+      if (user) {
+        console.log(`获取用户 ${username} (ID: ${user_id}) 的信息:`, user)
+        if (user.avatar) {
+          // 用户信息返回的avatar如果是以/开头，添加/api前缀，否则直接使用
+          newAvatarUrl = user.avatar.startsWith('/') ? `/api${user.avatar}` : user.avatar
+          console.log(`使用从API获取的头像: ${newAvatarUrl}`)
+        } else {
+          console.log(`用户 ${username} 没有设置头像，使用默认头像`)
+        }
+      }
+    } catch (error) {
+      console.error('获取用户头像失败:', error)
+      // 如果获取失败，使用comment对象中存储的avatar或默认头像
+      if (avatar) {
+        newAvatarUrl = avatar.startsWith('/') ? `/api${avatar}` : avatar
+        console.log(`API调用失败，使用comment中的头像: ${newAvatarUrl}`)
+      }
+    }
+  } else if (avatar) {
+    // 如果没有user_id但有avatar，使用comment对象中的avatar
+    newAvatarUrl = avatar.startsWith('/') ? `/api${avatar}` : avatar
+    console.log(`没有user_id，使用comment中的头像: ${newAvatarUrl}`)
   }
-  return avatar.startsWith('/') ? `/api${avatar}` : avatar
+  
+  avatarUrl.value = newAvatarUrl
+}
+
+// 组件挂载时获取头像
+onMounted(() => {
+  fetchUserAvatar()
+})
+
+// 监听评论变化，重新获取头像
+watch(
+  () => props.comment,
+  () => {
+    fetchUserAvatar()
+  },
+  { deep: true }
+)
+
+const getAvatar = computed(() => {
+  return avatarUrl.value
+})
+
+const tagClass = computed(() => {
+  if (props.comment.tag === '作者') return 'tag-author'
+  return 'tag-default'
 })
 
 // 方法
+const toggleReply = async () => {
+  showReply.value = !showReply.value
+  if (showReply.value && replyInput.value) {
+    await nextTick()
+    replyInput.value.focus()
+  }
+}
+
+const cancelReply = () => {
+  showReply.value = false
+  replyContent.value = ''
+}
+
 const submitReply = async () => {
-  const content = replyContent.value.trim()
-  if (!content) return
+  if (!replyContent.value.trim()) return
   
   isSubmitting.value = true
-  errorMessage.value = ''
-  
   try {
-    emit('reply', {
-      content,
+    await emit('reply', {
+      content: replyContent.value.trim(),
       parent_id: props.comment.id,
       root_id: props.comment.root_id || props.comment.id,
       reply_to_user_id: props.comment.user_id,
       reply_to_username: props.comment.username
     })
+    
+    // 成功后的反馈
     replyContent.value = ''
     showReply.value = false
+    
+    // 自动展开回复列表
+    if (!showAllReplies.value) {
+      showAllReplies.value = true
+    }
   } catch (error) {
-    console.error('提交回复失败:', error)
-    errorMessage.value = '提交回复失败，请稍后重试'
+    console.error('回复失败:', error)
   } finally {
     isSubmitting.value = false
   }
 }
 
-// 切换回复框显示/隐藏
-const toggleReplyBox = (replyId) => {
-  // 确保响应式赋值
-  if (!replyStates.value[replyId]) {
-    replyStates.value[replyId] = {
-      showReply: false,
-      replyContent: '',
-      isSubmitting: false,
-      errorMessage: ''
-    };
-  }
-  replyStates.value[replyId].showReply = !replyStates.value[replyId].showReply;
-}
-
-// 处理嵌套回复
-const handleNestedReply = (replyData) => {
-  // 直接转发reply事件给父组件
-  emit('reply', replyData)
-}
-
-// 提交嵌套回复
-const submitNestedReply = async (reply) => {
-  // 确保响应式赋值
-  if (!replyStates.value[reply.id]) {
-    replyStates.value[reply.id] = {
-      showReply: false,
-      replyContent: '',
-      isSubmitting: false,
-      errorMessage: ''
-    };
-  }
-  const replyState = replyStates.value[reply.id]
-  
-  const content = replyState.replyContent.trim()
-  if (!content) return
-  
-  replyState.isSubmitting = true
-  replyState.errorMessage = ''
-  
-  try {
-    emit('reply', {
-      content,
-      parent_id: reply.id,
-      root_id: reply.root_id || props.comment.root_id || props.comment.id, // 确保root_id始终是评论树的最顶层ID
-      reply_to_user_id: reply.user_id,
-      reply_to_username: reply.username
-    })
-    // 清空内容并关闭回复框
-    replyState.replyContent = ''
-    replyState.showReply = false
-  } catch (error) {
-    console.error('提交回复失败:', error)
-    replyState.errorMessage = '提交回复失败，请稍后重试'
-  } finally {
-    replyState.isSubmitting = false
-  }
-}
+const handleNestedReply = (data) => emit('reply', data)
 </script>
 
 <style scoped>
+/* ====== 设计变量 ====== */
 .comment-item {
-  background: #FDFBF7;
-  margin-bottom: 20px;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+  /* 主色调 - 暖色系 */
+  --color-primary: #8B572A;
+  --color-primary-light: rgba(139, 87, 42, 0.06);
+  --color-primary-hover: #7A4C24;
+  --color-secondary: #E5D9C5;
+  --color-tertiary: #D1BFA7;
+  
+  /* 背景色 */
+  --color-background: #FFFFFF;
+  --color-reply-bg: #FDFBF7;
+  --color-card-hover: #F8F5F0;
+  
+  /* 文字颜色 */
+  --color-text: #3E3A39;
+  --color-text-light: #8C8C8C;
+  --color-text-muted: #B0A8A0;
+  
+  /* 边框和分割线 */
+  --color-border: rgba(229, 217, 197, 0.6);
+  --color-border-light: rgba(229, 217, 197, 0.3);
+  --color-divider: #E5D9C5;
+  
+  /* 状态颜色 */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+  
+  /* 阴影效果 - 更轻量 */
+  --shadow-card: 0 2px 12px rgba(139, 87, 42, 0.03);
+  --shadow-hover: 0 4px 16px rgba(139, 87, 42, 0.06);
+  --shadow-float: 0 6px 24px rgba(139, 87, 42, 0.08);
+  --shadow-inner: inset 0 1px 4px rgba(0, 0, 0, 0.03);
+  
+  /* 圆角设计 - 更小巧 */
+  --radius-card: 10px;
+  --radius-input: 8px;
+  --radius-btn: 6px;
+  --radius-avatar: 50%;
+  
+  /* 动画效果 */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 间距设计 - 更紧凑 */
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+  
+  /* 字体大小 - 更小 */
+  --font-xs: 10px;
+  --font-sm: 11px;
+  --font-base: 12px;
+  --font-md: 13px;
+  --font-lg: 14px;
+  
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 8px;
+}
+
+/* ====== 主评论卡片 ====== */
+.comment-card {
+  display: flex;
+  gap: 8px;
+  background: var(--color-background);
+  padding: 10px 12px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-normal);
+  position: relative;
   overflow: hidden;
-  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 嵌套回复样式 - 移除框框效果 */
-.comment-item:deep(.comment-item) {
-  margin-bottom: 12px;
-  padding: 12px 0 12px 16px;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  border-left: 2px solid #E5D9C5;
-}
-
-/* 嵌套回复的头像 */
-.comment-item:deep(.comment-item .avatar) {
-  width: 44px;
-  height: 44px;
-}
-
-/* 嵌套回复的用户名 */
-.comment-item:deep(.comment-item .username) {
-  font-size: 15px;
-}
-
-/* 嵌套回复的内容 */
-.comment-item:deep(.comment-item .comment-content) {
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-/* 嵌套回复的回复按钮 */
-.comment-item:deep(.comment-item .reply-btn) {
-  font-size: 13px;
-  padding: 6px 12px;
-}
-
-/* 嵌套回复的回复输入框 */
-.comment-item:deep(.comment-item .reply-form) {
-  margin-left: 56px;
-  padding: 12px 0 12px 16px;
-}
-
-/* 嵌套回复的回复列表 */
-.comment-item:deep(.comment-item .replies) {
-  margin-left: 56px;
-  padding-left: 16px;
-}
-
-.comment-item::before {
+/* 卡片顶部装饰条 */
+.comment-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 3px;
-  background: #8B572A;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
   transform: scaleX(0);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left;
+  transition: transform var(--transition-normal);
 }
 
-.comment-item:hover {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.16);
+.comment-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(139, 87, 42, 0.4);
+  background: var(--color-card-hover);
   transform: translateY(-2px);
 }
 
-.comment-item:hover::before {
+.comment-card:hover::before {
   transform: scaleX(1);
 }
 
-.comment-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  width: 100%;
+.comment-card.highlighted {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, #fff, var(--color-reply-bg));
+  box-shadow: var(--shadow-float);
 }
 
-.avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  object-fit: cover;
+.comment-card.highlighted::before {
+  transform: scaleX(1);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+}
+
+/* ====== 头像区域 ====== */
+.avatar-wrapper {
+  position: relative;
   flex-shrink: 0;
-  border: 3px solid transparent;
-  background: linear-gradient(135deg, #1890ff 0%, #52c41a 100%);
-  padding: 2px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-.comment-item:hover .avatar {
-  transform: scale(1.1) rotate(5deg);
-  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.3);
+.avatar-frame {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.comment-body {
+.user-avatar, .user-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-avatar);
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(139, 87, 42, 0.12);
+  position: relative;
+  z-index: 2;
+  transition: all var(--transition-normal);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-tertiary));
+}
+
+.user-avatar:hover, .user-avatar img:hover {
+  transform: scale(1.05) rotate(3deg);
+  box-shadow: 0 4px 12px rgba(139, 87, 42, 0.2);
+}
+
+/* 头像光晕效果 - 更小巧 */
+.avatar-frame::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 87, 42, 0.15), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.avatar-frame:hover::before {
+  opacity: 1;
+}
+
+/* 回复连接线条 - 更细 */
+.thread-connector {
+  position: absolute;
+  top: 48px;
+  left: 18px;
+  width: 2px;
+  height: calc(100% - 36px);
+  background: linear-gradient(to bottom, var(--color-primary), transparent);
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
+.comment-card:hover .thread-connector {
+  opacity: 0.6;
+}
+
+/* ====== 内容区域 ====== */
+.content-wrapper {
   flex: 1;
   min-width: 0;
 }
 
-.comment-main {
+.comment-header {
+  margin-bottom: 6px;
+}
+
+.user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
   flex-wrap: wrap;
+  gap: 4px;
 }
 
 .username {
-  font-weight: 700;
-  color: #8B572A;
-  font-size: 17px;
-  transition: all 0.3s ease;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-size: 14px;
   position: relative;
-}
-
-.username::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: #8B572A;
-  transition: width 0.3s ease;
+  transition: all var(--transition-fast);
 }
 
 .username:hover {
-  color: #1890ff;
-}
-
-.username:hover::after {
-  width: 100%;
-}
-
-.user-tag {
-  font-size: 12px;
-  color: #fff;
-  background: #8B572A;
-  padding: 3px 12px;
-  border-radius: 16px;
-  font-weight: 600;
-  box-shadow: 0 3px 8px rgba(139, 87, 42, 0.4);
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.user-tag:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 12px rgba(24, 144, 255, 0.6);
-}
-
-.comment-content {
-  color: #3E3A39;
-  font-size: 16px;
-  line-height: 1.7;
-  margin-bottom: 16px;
-  word-break: break-word;
-  white-space: pre-wrap;
-  padding: 12px 0;
-  transition: color 0.2s ease;
-}
-
-.comment-item:hover .comment-content {
-  color: #262626;
-}
-
-.reply-to {
-  color: #1890ff;
-  font-weight: 600;
-  font-size: 15px;
-  margin-right: 8px;
-  transition: color 0.2s ease;
-}
-
-.reply-to:hover {
-  color: #40a9ff;
+  color: var(--color-primary-hover);
   text-decoration: underline;
 }
 
-.comment-meta {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  color: #8c8c8c;
-  font-size: 14px;
-  flex-wrap: wrap;
+/* 用户标签美化 - 更小 */
+.user-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all var(--transition-fast);
 }
 
-.date {
-  color: #8c8c8c;
-  font-size: 14px;
-  transition: all 0.3s ease;
+.tag-author {
+  background: linear-gradient(135deg, #FEE2E2, #FCA5A5);
+  color: var(--color-error);
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.15);
+}
+
+.tag-author:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.tag-default {
+  background: linear-gradient(135deg, #E5D9C5, #D1BFA7);
+  color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(139, 87, 42, 0.15);
+}
+
+.tag-default:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 87, 42, 0.2);
+}
+
+/* 时间戳美化 - 更小 */
+.timestamp {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin-left: auto;
+  transition: all var(--transition-fast);
   position: relative;
-  padding: 4px 0;
+  padding: 1px 6px;
+  border-radius: 10px;
 }
 
-.date::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: #1890ff;
-  transition: width 0.3s ease;
+.timestamp:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
-.date:hover {
-  color: #8B572A;
+/* ====== 评论内容 ====== */
+.comment-content {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-input);
+  background: rgba(229, 217, 197, 0.05);
+  transition: all var(--transition-fast);
+  border-left: 2px solid transparent;
+}
+
+.comment-content:hover {
+  background: rgba(229, 217, 197, 0.1);
+  border-left-color: var(--color-secondary);
+}
+
+/* 回复提及样式 - 更小 */
+.reply-mention {
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-right: 3px;
+  background: var(--color-primary-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all var(--transition-fast);
+}
+
+.reply-mention:hover {
+  background: var(--color-primary);
+  color: white;
   transform: translateY(-1px);
 }
 
-.date:hover::before {
-  width: 100%;
-  background: #8B572A;
-}
-
-/* 按钮基础样式 */
-.reply-btn, .more-btn {
+/* ====== 操作按钮 ====== */
+.comment-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: #8c8c8c;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius-btn);
+  color: var(--color-text-light);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 14px;
-  padding: 8px 16px;
-  border-radius: 24px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 600;
+  transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
 }
 
-.reply-btn::before, .more-btn::before {
+.action-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.5s;
+  background: linear-gradient(90deg, transparent, rgba(139, 87, 42, 0.1), transparent);
+  transition: left var(--transition-normal);
 }
 
-.reply-btn:hover::before, .more-btn:hover::before {
+.action-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: rgba(139, 87, 42, 0.2);
+  transform: translateY(-1px);
+}
+
+.action-btn:hover::before {
   left: 100%;
 }
 
-/* 回复按钮 */
-.reply-btn {
-  margin-left: auto;
-  background: rgba(139, 87, 42, 0.05);
-  color: #8B572A;
+.action-btn.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
 }
 
-.reply-btn:hover {
-  background: #8B572A;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(139, 87, 42, 0.4);
+.action-btn .icon {
+  transition: transform var(--transition-fast);
 }
 
-/* 更多按钮 */
-.more-btn {
-  margin-right: 0;
-  padding: 8px;
-  border-radius: 50%;
-  background: rgba(153, 153, 153, 0.05);
+.action-btn:hover .icon {
+  transform: translateX(2px) scale(1.1);
 }
 
-.more-btn:hover {
-  background: rgba(153, 153, 153, 0.15);
-  color: #666;
-  transform: rotate(180deg) scale(1.1);
-  box-shadow: 0 4px 12px rgba(153, 153, 153, 0.3);
-}
-
-/* 图标样式 */
-.more-icon {
-  font-size: 18px;
-  transition: all 0.3s ease;
-}
-
-/* 按钮焦点状态 */
-.reply-btn:focus,
-.more-btn:focus,
-.reply-submit:focus,
-.reply-cancel:focus {
-  outline: 3px solid #1890ff;
-  outline-offset: 3px;
-  border-radius: 24px;
-  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2);
-}
-
-/* 回复输入框 */
+/* ====== 回复输入框 ====== */
 .reply-form {
-  margin: 20px 0 0 74px;
-  background: #F5F0E6;
-  padding: 20px;
-  border-radius: 16px;
-  border: 2px solid #e8e8e8;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 12px;
+  animation: slideIn var(--transition-normal);
+}
+
+.reply-input-group {
+  background: var(--color-reply-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  padding: 12px;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-inner);
+}
+
+.reply-input-group:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 87, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+.input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reply-hint {
+  font-size: 13px;
+  color: var(--color-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reply-hint::before {
+  content: '💬';
+  font-size: 16px;
+}
+
+.char-counter {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  background: rgba(139, 87, 42, 0.05);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.char-counter.warning {
+  color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.reply-textarea {
+  width: 100%;
+  min-height: 90px;
+  border: none;
+  background: rgba(255, 255, 255, 0.8);
+  resize: vertical;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text);
+  padding: 12px 16px;
+  border-radius: var(--radius-btn);
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.reply-textarea:focus {
+  outline: none;
+  background: white;
+  box-shadow: var(--shadow-inner);
+  border-color: var(--color-primary);
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* 按钮美化 */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-btn);
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.reply-form::before {
+.btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 3px;
-  background: #8B572A;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform var(--transition-fast);
 }
 
-.reply-form:hover {
-  border-color: #1890ff;
-  box-shadow: 0 4px 20px rgba(24, 144, 255, 0.15);
-  transform: translateX(4px);
+.btn:hover::before {
+  transform: translateX(100%);
 }
 
-.reply-form textarea {
-  width: 100%;
-  min-height: 100px;
-  border: 2px solid #d9d9d9;
-  border-radius: 12px;
-  padding: 16px;
-  font-size: 16px;
-  resize: vertical;
-  margin-bottom: 16px;
-  font-family: inherit;
-  line-height: 1.7;
-  box-sizing: border-box;
-  background: #fff;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #434343;
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
 }
 
-.reply-form textarea::placeholder {
-  color: #bfbfbf;
-  font-style: italic;
-  transition: color 0.2s ease;
-}
-
-.reply-form textarea:focus {
-  outline: none;
-  border-color: #1890ff;
-  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2);
-  background: #fff;
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 87, 42, 0.3);
 }
 
-.reply-form textarea:focus::placeholder {
-  color: #8c8c8c;
-}
-
-.reply-actions {
-  display: flex;
-  gap: 16px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* 发表按钮 */
-.reply-submit {
-  background: #8B572A;
-  color: #fff;
-  border: none;
-  border-radius: 28px;
-  padding: 12px 32px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 700;
-  box-shadow: 0 4px 16px rgba(139, 87, 42, 0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.reply-submit:hover:not(:disabled) {
-  background: #A67C52;
-  box-shadow: 0 6px 24px rgba(139, 87, 42, 0.6);
-  transform: translateY(-2px) scale(1.05);
-}
-
-.reply-submit:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-}
-
-.reply-submit:disabled {
-  background: #f5f5f5;
-  color: #bfbfbf;
+.btn-primary:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
   transform: none;
+  box-shadow: none;
 }
 
-/* 取消按钮 */
-.reply-cancel {
-  background: #fff;
-  color: #595959;
-  border: 2px solid #d9d9d9;
-  border-radius: 28px;
-  padding: 12px 32px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-light);
+  border: 1px solid var(--color-border);
 }
 
-.reply-cancel:hover {
-  background: #fafafa;
-  border-color: #1890ff;
-  color: #1890ff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.2);
-}
-
-.reply-cancel:active {
-  transform: translateY(0) scale(0.98);
-}
-
-/* 登录提示 */
-.login-tip {
-  color: #ff4d4f;
-  font-size: 15px;
-  padding: 20px;
-  margin: 20px 0 0 74px;
-  background: linear-gradient(135deg, rgba(255, 77, 79, 0.05) 0%, rgba(255, 107, 107, 0.05) 100%);
-  border-radius: 16px;
-  border: 2px solid rgba(255, 77, 79, 0.2);
-  text-align: center;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.1);
-}
-
-.login-tip:hover {
-  border-color: rgba(255, 77, 79, 0.4);
-  box-shadow: 0 4px 16px rgba(255, 77, 79, 0.2);
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text);
+  border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 
-/* 错误信息 */
-.error-message {
-  color: #ff4d4f;
-  font-size: 14px;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(255, 77, 79, 0.05) 0%, rgba(255, 107, 107, 0.05) 100%);
-  border-radius: 8px;
-  border-left: 4px solid #ff4d4f;
-  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.1);
-  font-weight: 500;
+/* 登录提示美化 */
+.auth-prompt {
+  text-align: center;
+  padding: 24px;
+  background: var(--color-reply-bg);
+  border-radius: var(--radius-input);
+  border: 1px dashed var(--color-border);
+  transition: all var(--transition-normal);
 }
 
-/* 回复列表 */
-.replies {
-  margin: 20px 0 0 74px;
-  padding-left: 24px;
-  border-left: 3px solid #E5D9C5;
+.auth-prompt:hover {
+  border-color: var(--color-primary);
+  background: rgba(139, 87, 42, 0.05);
+}
+
+.login-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  background: linear-gradient(135deg, rgba(139, 87, 42, 0.1), rgba(139, 87, 42, 0.2));
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+
+.login-link:hover {
+  text-decoration: none;
+  color: white;
+  background: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 87, 42, 0.3);
+}
+
+.auth-prompt {
+  text-align: center;
+  padding: 24px;
+  background: var(--color-reply-bg);
+  border-radius: var(--radius-input);
+  border: 1px dashed var(--color-border);
+}
+
+.login-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}
+
+/* ====== 嵌套回复 ====== */
+.replies-container {
+  margin-left: 48px;
+  position: relative;
+  padding-left: 12px;
+}
+
+.replies-list {
   position: relative;
 }
 
-.replies::before {
+.replies-list::before {
   content: '';
   position: absolute;
-  left: -7px;
+  left: -18px;
   top: 0;
-  width: 11px;
-  height: 11px;
-  background: #8B572A;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(139, 87, 42, 0.4);
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, 
+    transparent,
+    var(--color-primary) 20%,
+    var(--color-secondary) 80%,
+    transparent
+  );
+  opacity: 0.6;
 }
 
-/* 回复项 */
-.reply-item {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #F5F0E6;
-  border-radius: 12px;
-  border: 2px solid #f0f2f5;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: fadeInLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+/* 嵌套评论的特殊样式 */
+.is-nested {
+  margin-bottom: 8px;
 }
 
-.reply-item:hover {
-  background: #fff;
-  border-color: #1890ff;
-  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.15);
-  transform: translateX(4px);
-}
-
-/* 简化的回复内容 */
-.reply-content-simple {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.reply-header-simple {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.username-simple {
-  font-weight: 600;
-  color: #8B572A;
-  font-size: 15px;
-}
-
-.date-simple {
-  color: #8c8c8c;
-  font-size: 12px;
-}
-
-.comment-content-simple {
-  color: #3E3A39;
-  font-size: 14px;
-  line-height: 1.6;
-  word-break: break-word;
-  padding: 8px 0;
-}
-
-.reply-to-simple {
-  color: #1890ff;
-  font-weight: 500;
-  margin-right: 4px;
-}
-
-.reply-actions-simple {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: #8c8c8c;
-  font-size: 13px;
-}
-
-/* 简化的按钮样式 */
-.reply-btn-simple {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
+.is-nested .comment-card {
+  background: transparent;
   border: none;
-  color: #8B572A;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  z-index: 10;
-  position: relative;
+  box-shadow: none;
+  padding: 8px 0 8px 16px;
+  margin: 0;
+  border-radius: 0;
+  border-left: 3px solid var(--color-border-light);
+  transition: all var(--transition-normal);
 }
 
-.reply-btn-simple:hover {
-  background: rgba(139, 87, 42, 0.15);
-  color: #8B572A;
-  transform: translateY(-1px);
+.is-nested .comment-card::before {
+  display: none;
 }
 
-/* 简化的回复输入框 */
-.reply-form-simple {
-  margin: 12px 0 0 24px;
-  background: #F5F0E6;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid #e8e8e8;
-  transition: all 0.3s ease;
+.is-nested .comment-card:hover {
+  box-shadow: 0 4px 16px rgba(139, 87, 42, 0.08);
+  background: var(--color-reply-bg);
+  border-radius: var(--radius-input);
+  border-left-color: var(--color-primary);
+  transform: translateY(-1px) translateX(8px);
 }
 
-.reply-form-simple:hover {
-  border-color: #8B572A;
-  box-shadow: 0 2px 8px rgba(139, 87, 42, 0.1);
+.is-nested .avatar-frame {
+  width: 36px;
+  height: 36px;
 }
 
-.reply-form-simple textarea {
-  width: 100%;
-  min-height: 70px;
-  border: 2px solid #d9d9d9;
-  border-radius: 8px;
-  padding: 12px;
+.is-nested .user-avatar, .is-nested .user-avatar img {
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(139, 87, 42, 0.15);
+}
+
+.is-nested .comment-content {
   font-size: 14px;
-  resize: vertical;
-  margin-bottom: 12px;
-  font-family: inherit;
-  line-height: 1.5;
-  box-sizing: border-box;
-  background: #fff;
-  transition: all 0.3s ease;
+  padding: 8px 12px;
+  background: rgba(229, 217, 197, 0.08);
+  border-left-color: transparent;
 }
 
-.reply-form-simple textarea:focus {
-  outline: none;
-  border-color: #8B572A;
-  box-shadow: 0 0 0 3px rgba(139, 87, 42, 0.2);
+.is-nested .comment-content:hover {
+  border-left-color: var(--color-secondary);
 }
 
-/* 简化的登录提示 */
-.login-tip-simple {
-  color: #ff4d4f;
+.is-nested .comment-actions {
+  padding-top: 8px;
+}
+
+.is-nested .action-btn {
+  padding: 5px 12px;
   font-size: 13px;
-  padding: 12px;
-  margin: 12px 0 0 24px;
-  background: rgba(255, 77, 79, 0.05);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 77, 79, 0.2);
-  text-align: center;
-  font-weight: 500;
 }
 
-/* 更多回复按钮 */
+/* ====== 展开更多按钮 ====== */
 .more-replies {
-  margin-top: 16px;
-  margin-bottom: 0;
-  text-align: center;
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
 }
 
-.more-replies-btn {
-  background: #8B572A;
-  color: #fff;
-  border: none;
+.expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 15px;
-  padding: 12px 32px;
-  border-radius: 28px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 700;
-  box-shadow: 0 4px 16px rgba(139, 87, 42, 0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
 }
 
-.more-replies-btn:hover {
-  background: #A67C52;
-  box-shadow: 0 6px 24px rgba(139, 87, 42, 0.6);
-  transform: translateY(-2px) scale(1.05);
+.expand-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(139, 87, 42, 0.1), transparent);
+  transition: left var(--transition-normal);
 }
 
-.more-replies-btn:active {
-  transform: translateY(0) scale(0.98);
+.expand-btn:hover {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 
-/* 动画 */
-@keyframes fadeInUp {
+.expand-btn:hover::before {
+  left: 100%;
+}
+
+.expand-btn:active {
+  transform: translateY(0);
+}
+
+.chevron {
+  transition: all var(--transition-normal);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.chevron.expanded {
+  transform: rotate(180deg) scale(1.1);
+}
+
+/* ====== 加载动画 ====== */
+.loading-dots::after {
+  content: '';
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0%, 100% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+}
+
+/* ====== 动画 ====== */
+@keyframes rotate-glow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(30px) scale(0.95);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-@keyframes fadeInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
 }
 
-/* 按钮点击反馈 */
-.reply-btn:active,
-.more-btn:active {
-  transform: scale(0.92);
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
-/* 响应式设计 */
+/* ====== 响应式设计 ====== */
 @media (max-width: 768px) {
-  .comment-item {
-    padding: 20px;
-    margin-bottom: 16px;
-    border-radius: 12px;
-  }
-  
-  .comment-header {
-    gap: 14px;
-  }
-  
-  .avatar {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .username { font-size: 16px; }
-  .comment-content { font-size: 15px; line-height: 1.6; }
-  
-  .comment-meta {
-    font-size: 13px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  
-  .like-btn, .dislike-btn, .reply-btn, .more-btn {
-    padding: 6px 12px;
-    font-size: 13px;
-    gap: 6px;
-  }
-  
-  .like-icon, .dislike-icon { font-size: 18px; }
-  
-  .reply-form, .login-tip {
-    margin-left: 64px;
+  .comment-card {
     padding: 16px;
-  }
-  
-  .reply-form textarea {
-    min-height: 90px;
-    font-size: 15px;
-    padding: 14px;
-  }
-  
-  .reply-submit, .reply-cancel {
-    padding: 10px 24px;
-    font-size: 14px;
-  }
-  
-  .replies {
-    margin-left: 64px;
-    padding-left: 16px;
-  }
-  
-  .reply-item {
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  
-  .reply-item .avatar {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .reply-item .comment-header { gap: 12px; }
-  .reply-item .reply-form { margin-left: 56px; }
-}
-
-@media (max-width: 480px) {
-  .comment-item {
-    padding: 16px;
-    margin-bottom: 12px;
-    border-radius: 8px;
-  }
-  
-  .comment-header { gap: 12px; }
-  
-  .avatar {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .username { font-size: 15px; }
-  .comment-content { font-size: 14px; margin-bottom: 12px; }
-  
-  .comment-meta {
-    font-size: 12px;
     gap: 12px;
   }
   
-  .reply-form, .login-tip {
-    margin-left: 56px;
-    padding: 14px;
+  .replies-container {
+    margin-left: 40px;
   }
   
-  .reply-form textarea {
-    min-height: 80px;
-    font-size: 14px;
-    padding: 12px;
-  }
-  
-  .replies {
-    margin-left: 56px;
-    padding-left: 12px;
-  }
-  
-  .reply-item {
-    padding: 14px;
-    margin-bottom: 12px;
-  }
-  
-  .reply-item .avatar {
+  .avatar-frame {
     width: 40px;
     height: 40px;
   }
   
-  .more-replies-btn {
-    padding: 10px 24px;
-    font-size: 14px;
+  .is-nested .avatar-frame {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .comment-actions {
+    flex-wrap: wrap;
+  }
+  
+  .user-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .timestamp {
+    margin-left: 0;
+    font-size: 12px;
   }
 }
 </style>

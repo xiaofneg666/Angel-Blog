@@ -533,16 +533,56 @@ const handleFavorite = async () => {
   }
 }
 
-// 在 <script setup> 末尾添加 getUserAvatar 方法
-function getUserAvatar() {
-  if (authStore.isAuthenticated && authStore.user && authStore.user.avatar) {
-    if (authStore.user.avatar.startsWith('/')) {
-      return '/api' + authStore.user.avatar;
+// 引入getUserById函数
+import { getUserById } from '@/api/auth';
+
+// 当前登录用户的头像URL
+const currentUserAvatar = ref('/api/head/R.jpg');
+
+// 获取当前登录用户的最新头像
+const fetchCurrentUserAvatar = async () => {
+  if (authStore.isAuthenticated && authStore.user) {
+    try {
+      // 通过用户ID从数据库获取最新用户信息
+      const user = await getUserById(authStore.user.id);
+      if (user && user.avatar) {
+        // 构建正确的头像URL
+        currentUserAvatar.value = user.avatar.startsWith('/') ? `/api${user.avatar}` : user.avatar;
+      } else {
+        // 如果没有头像，使用默认头像
+        currentUserAvatar.value = '/api/head/R.jpg';
+      }
+    } catch (error) {
+      console.error('获取当前用户头像失败:', error);
+      // 如果API调用失败，使用authStore中的头像或默认头像
+      if (authStore.user.avatar) {
+        currentUserAvatar.value = authStore.user.avatar.startsWith('/') ? `/api${authStore.user.avatar}` : authStore.user.avatar;
+      } else {
+        currentUserAvatar.value = '/api/head/R.jpg';
+      }
     }
-    return authStore.user.avatar;
+  } else {
+    // 如果未登录，使用默认头像
+    currentUserAvatar.value = '/api/head/R.jpg';
   }
-  // 如果没有头像，使用固定的R.jpg作为默认头像
-  return '/api/head/R.jpg';
+};
+
+// 组件挂载时获取当前用户头像
+onMounted(() => {
+  fetchCurrentUserAvatar();
+});
+
+// 监听用户认证状态变化，重新获取头像
+watch(
+  () => authStore.isAuthenticated,
+  () => {
+    fetchCurrentUserAvatar();
+  }
+);
+
+// 用户头像获取方法，供模板使用
+function getUserAvatar() {
+  return currentUserAvatar.value;
 }
 
 // 处理封面点击

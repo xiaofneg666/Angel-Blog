@@ -115,7 +115,7 @@ router.post('/login', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const [users] = await db.query(
-            'SELECT id, username, email, role, created_at FROM users WHERE id = ?',
+            'SELECT id, username, email, role, avatar, created_at FROM users WHERE id = ?',
             [req.params.id]
         );
         
