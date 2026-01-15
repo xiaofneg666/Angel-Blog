@@ -68,7 +68,45 @@
       </div>
       <!-- 右侧功能按钮 -->
       <div class="nav-actions">
-        <span class="nav-action-btn" title="搜索">🔍</span>
+        <!-- 搜索功能 -->
+        <div class="search-dropdown">
+          <span class="nav-action-btn" title="搜索" @click.stop="toggleSearchMenu">🔍</span>
+          <!-- 搜索输入框 -->
+          <div class="search-menu" v-if="showSearchMenu">
+            <div class="search-menu-header">
+              <div class="search-input-container">
+                <input 
+                  type="text" 
+                  v-model="searchQuery" 
+                  placeholder="搜索文章标题..." 
+                  class="search-input" 
+                  @input="handleSearch"
+                  @keyup.enter="handleSearch"
+                />
+                <span class="search-input-clear" v-if="searchQuery" @click="clearSearch">×</span>
+              </div>
+              <span class="search-menu-close" @click="showSearchMenu = false">×</span>
+            </div>
+            <!-- 搜索结果 -->
+            <div class="search-results" v-if="searchQuery">
+              <div v-if="searchResults.length > 0" class="search-results-list">
+                <router-link 
+                  v-for="result in searchResults" 
+                  :key="result.id" 
+                  :to="{ name: 'post-detail', params: { id: result.id } }" 
+                  class="search-result-item" 
+                  @click="showSearchMenu = false"
+                >
+                  <h4 class="search-result-title">{{ result.title }}</h4>
+                  <p class="search-result-date">{{ result.publish_time || result.createdAt }}</p>
+                </router-link>
+              </div>
+              <div v-else class="search-no-results">
+                未找到相关文章
+              </div>
+            </div>
+          </div>
+        </div>
         <span class="nav-action-btn" @click="toggleTheme" title="白/夜模式">
           {{ isDark ? '🌙' : '☀️' }}
         </span>
@@ -108,9 +146,19 @@ const authStore = useAuthStore();
 const showArticleDropdown = ref(false);
 const showFunDropdown = ref(false);
 const showCursorMenu = ref(false);
+const showSearchMenu = ref(false);
 
 const isDark = ref(false);
 const cursorStyle = ref('default');
+
+// 搜索相关状态
+const searchQuery = ref('');
+const searchResults = ref([]);
+const allArticles = ref([]);
+const isLoading = ref(false);
+
+// API URL
+const API_URL = 'http://localhost:3000/api';
 
 // 鼠标样式选项 - 包含系统样式和自定义动漫样式
 const cursorOptions = [
@@ -131,8 +179,28 @@ const cursorOptions = [
   { value: 'unicorn', label: '独角兽指针', image: '/static/独角兽.png' }
 ];
 
+// 获取所有文章数据
+async function fetchAllArticles() {
+  try {
+    isLoading.value = true;
+    // 获取所有文章，不使用分页
+    const response = await fetch(`${API_URL}/articles?page=1&pageSize=100`);
+    const json = await response.json();
+    if (json.success && json.data && Array.isArray(json.data.articles)) {
+      allArticles.value = json.data.articles;
+    } else {
+      allArticles.value = [];
+    }
+  } catch (error) {
+    console.error('获取文章列表失败:', error);
+    allArticles.value = [];
+  } finally {
+    isLoading.value = false;
+  }
+}
+
 // 初始化主题和鼠标样式
-onMounted(() => {
+onMounted(async () => {
   // 从localStorage获取保存的主题偏好
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -149,13 +217,48 @@ onMounted(() => {
   // 应用初始鼠标样式
   applyCursorStyle(cursorStyle.value);
 
+  // 获取文章列表数据
+  await fetchAllArticles();
+
   // 点击页面其他地方关闭菜单
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.cursor-dropdown')) {
       showCursorMenu.value = false;
     }
+    if (!e.target.closest('.search-dropdown')) {
+      showSearchMenu.value = false;
+    }
   });
 });
+
+// 切换搜索菜单
+function toggleSearchMenu() {
+  showSearchMenu.value = !showSearchMenu.value;
+}
+
+// 处理搜索
+function handleSearch() {
+  if (!searchQuery.value.trim()) {
+    searchResults.value = [];
+    return;
+  }
+  
+  // 搜索逻辑：只要标题包含搜索词中的任意一个字符就匹配
+  const query = searchQuery.value.toLowerCase();
+  searchResults.value = allArticles.value.filter(article => {
+    // 确保 article 和 article.title 存在
+    if (!article || !article.title) return false;
+    const title = article.title.toLowerCase();
+    // 检查标题是否包含搜索词中的任意一个字符
+    return query.split('').some(char => title.includes(char));
+  });
+}
+
+// 清空搜索
+function clearSearch() {
+  searchQuery.value = '';
+  searchResults.value = [];
+}
 
 function toggleTheme() {
   isDark.value = !isDark.value;
@@ -622,6 +725,211 @@ button.nav-item:hover {
 [data-theme="dark"] .cursor-option.active {
   background: rgba(64, 158, 255, 0.15);
   border-color: #409EFF;
+}
+
+/* 搜索功能样式 */
+.search-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* 搜索菜单 */
+.search-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 2px;
+  background: rgba(40, 44, 52, 0.98);
+  color: #fff;
+  min-width: 400px;
+  max-height: 500px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeInUp 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+/* 搜索菜单头部 */
+.search-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
+}
+
+/* 搜索输入容器 */
+.search-input-container {
+  flex: 1;
+  position: relative;
+}
+
+/* 搜索输入框 */
+.search-input {
+  width: 100%;
+  padding: 10px 32px 10px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.search-input:focus {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+}
+
+/* 搜索输入框清除按钮 */
+.search-input-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.search-input-clear:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 搜索菜单关闭按钮 */
+.search-menu-close {
+  cursor: pointer;
+  font-size: 20px;
+  transition: color 0.2s;
+  padding: 4px;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-menu-close:hover {
+  color: #ff7675;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 搜索结果 */
+.search-results {
+  padding: 8px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* 搜索结果列表 */
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 搜索结果项 */
+.search-result-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px;
+  text-decoration: none;
+  color: #fff;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.search-result-item:hover {
+  background: rgba(64, 158, 255, 0.14);
+}
+
+/* 搜索结果标题 */
+.search-result-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+  color: #fff;
+  transition: color 0.2s;
+}
+
+.search-result-item:hover .search-result-title {
+  color: #409EFF;
+}
+
+/* 搜索结果日期 */
+.search-result-date {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+/* 无搜索结果 */
+.search-no-results {
+  padding: 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+/* 搜索结果滚动条 */
+.search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 深色模式下的搜索样式 */
+[data-theme="dark"] .search-menu {
+  background: rgba(30, 30, 50, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .search-menu-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .search-input {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .search-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .search-result-item:hover {
+  background: rgba(64, 158, 255, 0.1);
+}
+
+[data-theme="dark"] .search-result-item:hover .search-result-title {
+  color: #409EFF;
 }
 
 .dropdown {

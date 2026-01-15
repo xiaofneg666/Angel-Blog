@@ -42,7 +42,8 @@ export const useArticleStore = defineStore('article', {
         this.loading = true;
         this.error = null;
         const data = await getArticles(params);
-        this.articles = data;
+        // 确保 articles 是数组
+        this.articles = Array.isArray(data.articles) ? data.articles : [];
         return data;
       } catch (error) {
         this.error = error.message;
