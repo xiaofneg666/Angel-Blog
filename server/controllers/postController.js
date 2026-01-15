@@ -247,14 +247,44 @@ exports.updatePost = async (req, res) => {
 // 删除文章
 exports.deletePost = async (req, res) => {
   try {
+    const fs = require('fs');
+    const path = require('path');
+    
     const postId = req.params.id;
 
+    // 1. 获取文章信息，包括封面图片
     const [posts] = await pool.query('SELECT * FROM articles WHERE id = ?', [postId]);
     if (posts.length === 0) {
       return res.status(404).json({ message: '文章未找到' });
     }
 
+    const post = posts[0];
+    
+    // 2. 权限检查：只有文章作者或管理员才能删除
+    console.log('当前用户信息:', req.user);
+    console.log('文章作者ID:', post.author_id);
+    
+    if (post.author_id !== req.user.userId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '没有权限删除这篇文章' });
+    }
+
+    const coverImage = post.cover_image;
+
+    // 3. 删除文章记录（会触发ON DELETE CASCADE删除相关评论、章节等）
     await pool.query('DELETE FROM articles WHERE id = ?', [postId]);
+
+    // 4. 删除封面图片文件
+    if (coverImage) {
+      const imagePath = path.join(__dirname, '..', 'public', coverImage.replace('/uploads/', 'uploads/'));
+      console.log('尝试删除封面图片:', imagePath);
+      
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+        console.log('封面图片删除成功');
+      } else {
+        console.log('封面图片不存在，跳过删除');
+      }
+    }
 
     res.json({ message: '文章删除成功' });
   } catch (error) {

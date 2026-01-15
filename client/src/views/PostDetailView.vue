@@ -383,6 +383,21 @@ const getImageUrl = (path) => {
   return `/api/uploads/${path}`
 }
 
+// 处理删除文章
+const handleDelete = async () => {
+  if (!confirm('确定要删除这篇文章吗？')) return
+  
+  try {
+    await articleStore.removeArticle(route.params.id)
+    ElMessage.success('文章删除成功')
+    // 删除成功后跳转到首页
+    router.push({ name: 'home' })
+  } catch (error) {
+    console.error('删除文章失败:', error)
+    ElMessage.error('删除文章失败: ' + (error.message || '未知错误'))
+  }
+}
+
 // 初始化
 onMounted(() => {
   fetchArticleDetail()

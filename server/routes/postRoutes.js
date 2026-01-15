@@ -13,6 +13,8 @@ const postController = require('../controllers/postController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const authMiddleware = require('../middleware/auth');
+const authMiddlewareSimple = require('../middleware/authMiddleware');
 
 // 修改存储配置
 const storage = multer.diskStorage({
@@ -66,6 +68,6 @@ router.get('/:id', postController.getPostById);
 router.put('/:id', upload.single('coverImage'), postController.updatePost);
 
 // 删除文章
-router.delete('/:id', postController.deletePost);
+router.delete('/:id', authMiddleware, postController.deletePost);
 
 module.exports = router;

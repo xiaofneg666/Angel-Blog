@@ -22,8 +22,8 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     console.log('解码后的用户信息:', decoded);
 
-    // 从数据库获取完整的用户信息，包括头像
-    const [users] = await db.query('SELECT id, username, avatar FROM users WHERE id = ?', [decoded.userId]);
+    // 从数据库获取完整的用户信息，包括头像和角色
+    const [users] = await db.query('SELECT id, username, avatar, role FROM users WHERE id = ?', [decoded.userId]);
     if (users.length === 0) {
       return res.status(401).json({
         success: false,
@@ -35,7 +35,9 @@ const auth = async (req, res, next) => {
     req.user = {
       ...decoded,
       userId: users[0].id,
-      avatar: users[0].avatar
+      username: users[0].username,
+      avatar: users[0].avatar,
+      role: users[0].role
     };
 
     console.log('完整的用户信息:', req.user);

@@ -57,12 +57,14 @@ const authRoutes = require('./routes/authRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/users');
+const postRoutes = require('./routes/postRoutes');
 
 // 使用路由
 app.use('/api/auth', authRoutes);
 app.use('/api', commentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
 
 // 使用留言路由
 app.use('/api/messages', messageRoutes);

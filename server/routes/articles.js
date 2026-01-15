@@ -999,4 +999,73 @@ router.put('/:id/cover', verifyToken, (req, res, next) => {
   }
 });
 
+// 删除文章
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    // 检查用户是否登录
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: '用户未登录'
+      });
+    }
+
+    // 获取文章信息
+    const [articleRows] = await db.query('SELECT * FROM articles WHERE id = ?', [id]);
+    if (articleRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '文章不存在'
+      });
+    }
+
+    const article = articleRows[0];
+
+    // 检查用户是否是文章作者或管理员
+    if (article.author_id !== user.id && user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: '无权限删除该文章'
+      });
+    }
+
+    // 删除封面图片
+    const fs = require('fs');
+    if (article.cover_image) {
+      let coverImagePath = article.cover_image;
+      // 处理图片路径，确保是正确的本地路径
+      if (coverImagePath.startsWith('/uploads/')) {
+        coverImagePath = coverImagePath.substring(1); // 移除 / 前缀
+      }
+      const fullPath = path.join(__dirname, '..', 'public', coverImagePath);
+      
+      // 检查文件是否存在并删除
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        console.log('封面图片已删除:', fullPath);
+      }
+    }
+
+    // 删除文章记录
+    await db.query('DELETE FROM articles WHERE id = ?', [id]);
+
+    console.log('文章删除成功:', id);
+
+    res.json({
+      success: true,
+      message: '文章删除成功'
+    });
+  } catch (error) {
+    console.error('删除文章失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '删除文章失败，请稍后重试',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router; 

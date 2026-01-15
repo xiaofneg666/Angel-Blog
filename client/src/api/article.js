@@ -6,14 +6,14 @@
  * @FilePath: \blog-project (3) (1)\blog-project\client\src\api\article.js
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
-import axios from 'axios';
+import apiClient from './axios';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '';
 
 // 获取所有文章
 export const getArticles = async (params = {}) => {
   try {
-    const response = await axios.get(`${API_URL}/articles`, { params });
+    const response = await apiClient.get('/articles', { params });
     return response.data;
   } catch (error) {
     console.error('获取文章列表错误:', error);
@@ -24,7 +24,7 @@ export const getArticles = async (params = {}) => {
 // 获取单篇文章
 export const getArticleById = async (id) => {
   try {
-    const response = await axios.get(`${API_URL}/articles/${id}`);
+    const response = await apiClient.get(`/articles/${id}`);
     return response.data;
   } catch (error) {
     console.error('获取文章详情错误:', error);
@@ -35,12 +35,6 @@ export const getArticleById = async (id) => {
 // 创建文章
 export const createArticle = async (formData) => {
   try {
-    // 获取token
-    const token = localStorage.getItem('token')
-    if (!token) {
-      throw new Error('请先登录')
-    }
-
     console.log('发送文章数据:', {
       title: formData.get('title'),
       content: formData.get('content'),
@@ -48,10 +42,9 @@ export const createArticle = async (formData) => {
       hasCoverImage: formData.has('coverImage')
     })
 
-    const response = await axios.post(`${API_URL}/articles`, formData, {
+    const response = await apiClient.post('/articles', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'multipart/form-data'
       }
     })
 
@@ -83,7 +76,7 @@ export const createArticle = async (formData) => {
 // 更新文章
 export const updateArticle = async (id, formData) => {
   try {
-    const response = await axios.put(`${API_URL}/articles/${id}`, formData, {
+    const response = await apiClient.put(`/articles/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -98,7 +91,7 @@ export const updateArticle = async (id, formData) => {
 // 删除文章
 export const deleteArticle = async (id) => {
   try {
-    const response = await axios.delete(`${API_URL}/articles/${id}`);
+    const response = await apiClient.delete(`/articles/${id}`);
     return response.data;
   } catch (error) {
     console.error('删除文章错误:', error);
@@ -109,7 +102,7 @@ export const deleteArticle = async (id) => {
 // 获取用户收藏的文章
 export async function getCollectedArticles(userId) {
   try {
-    const response = await axios.get(`${API_URL}/collected`, {
+    const response = await apiClient.get('/collected', {
       params: { userId }
     });
     return response.data;
@@ -121,7 +114,7 @@ export async function getCollectedArticles(userId) {
 // 获取用户点赞的文章
 export async function getLikedArticles(userId) {
   try {
-    const response = await axios.get(`${API_URL}/liked`, {
+    const response = await apiClient.get('/liked', {
       params: { userId }
     });
     return response.data;
@@ -133,7 +126,7 @@ export async function getLikedArticles(userId) {
 // 获取用户自己的文章
 export async function getMyArticles(userId) {
   try {
-    const response = await axios.get(`${API_URL}/my`, {
+    const response = await apiClient.get('/my', {
       params: { userId }
     });
     return response.data;
@@ -145,7 +138,7 @@ export async function getMyArticles(userId) {
 // 获取文章归档
 export const getArticleArchive = async () => {
   try {
-    const response = await axios.get(`${API_URL}/articles/archive`);
+    const response = await apiClient.get('/articles/archive');
     return response.data;
   } catch (error) {
     console.error('获取文章归档错误:', error);

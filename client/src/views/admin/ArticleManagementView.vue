@@ -99,6 +99,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { deletePost } from '../../api/posts'
 
 const loading = ref(false)
 const error = ref('')
@@ -154,7 +155,14 @@ const handleSearch = () => {
 // 删除文章
 const handleDelete = async (id) => {
   if (!confirm('确定要删除这篇文章吗？')) return
-  articles.value = articles.value.filter(a => a.id !== id)
+  try {
+    await deletePost(id)
+    articles.value = articles.value.filter(a => a.id !== id)
+    alert('文章删除成功')
+  } catch (error) {
+    console.error('删除文章失败:', error)
+    alert('删除文章失败: ' + (error.message || '未知错误'))
+  }
 }
 
 // 格式化日期
