@@ -143,32 +143,44 @@
         <!-- 最新评论 -->
         <div class="comments">
           <div class="comments-title">最新评论</div>
-          <div 
+          <router-link 
             v-for="comment in comments" 
             :key="comment.id" 
-            class="comment-item"
+            :to="{ name: 'post-detail', params: { id: comment.article_id }, hash: '#comments' }" 
+            class="comment-item-link"
           >
-            <div class="comment-avatar">
-              <img 
-                :src="getUserAvatar(comment.avatar)" 
-                :alt="comment.username" 
-              />
-            </div>
-            <div class="comment-content">
-              <div class="comment-header">
-                <span class="comment-username">{{ comment.username }}</span>
-                <span class="comment-time">{{ comment.created_at }}</span>
+            <div class="comment-item">
+              <div class="comment-avatar">
+                <img 
+                  :src="getUserAvatar(comment.avatar)" 
+                  :alt="comment.username" 
+                />
               </div>
-              <div class="comment-text">{{ comment.content }}</div>
+              <div class="comment-content">
+                <div class="comment-header">
+                  <span class="comment-username">{{ comment.username }}</span>
+                  <span class="comment-time">{{ comment.created_at }}</span>
+                </div>
+                <div class="comment-text">{{ truncateText(comment.content, 20) }}</div>
+              </div>
             </div>
-          </div>
+          </router-link>
         </div>
 
         <div class="stats">
           <div class="stats-title">网站统计</div>
-          <div>文章数：44</div>
-          <div>访问量：350788499369</div>
-          <div>评论数：0</div>
+          <template v-if="statsLoading">
+            <div class="stats-loading">加载中...</div>
+          </template>
+          <template v-else-if="statsError">
+            <div class="stats-error">{{ statsError }}</div>
+          </template>
+          <template v-else>
+            <div>文章数：{{ stats.articleCount }}</div>
+            <div>访问量：{{ stats.visitCount }}</div>
+            <div>评论数：{{ stats.commentCount }}</div>
+            <div>分类数：{{ stats.categoryCount }}</div>
+          </template>
         </div>
       </aside>
     </div>
@@ -200,11 +212,12 @@ function startTyping(text) {
 }
 async function fetchRandomSaying() {
   try {
-    const res = await fetch('/api/sayings/random')
+    const res = await fetch('http://localhost:3000/api/sayings/random')
     const json = await res.json()
     if (json.success) startTyping(json.data.content)
     else startTyping('学习知识是为了提出更好的问题。')
-  } catch {
+  } catch (e) {
+    console.error('获取随机名言失败:', e)
     startTyping('学习知识是为了提出更好的问题。')
   }
 }
@@ -315,16 +328,22 @@ function stopIntersection() {
 }
 
 /* -------------------- 7. 统计数据 -------------------- */
-const stats = ref({ articleCount: 0, categoryCount: 0 })
+const stats = ref({ 
+  articleCount: 0, 
+  categoryCount: 0,
+  visitCount: 0,
+  commentCount: 0
+})
 const statsLoading = ref(false)
 const statsError = ref('')
 async function fetchStats() {
   statsLoading.value = true
   try {
-    const res = await fetch('/api/dashboard/stats')
+    const res = await fetch('http://localhost:3000/api/dashboard/stats')
     const json = await res.json()
     if (json.success) stats.value = json.data
-  } catch {
+  } catch (e) {
+    console.error('获取统计数据失败:', e)
     statsError.value = '获取统计数据失败'
   } finally {
     statsLoading.value = false
@@ -336,6 +355,7 @@ const comments = ref([
   {
     id: 1,
     user_id: 1,
+    article_id: 1,
     username: '用户A',
     avatar: '/2222.jpg',
     content: '文章写得很好！',
@@ -344,6 +364,7 @@ const comments = ref([
   {
     id: 2,
     user_id: 2,
+    article_id: 2,
     username: '用户B',
     avatar: '/2222.jpg',
     content: '学习了，感谢分享！',
@@ -369,6 +390,13 @@ function getUserAvatar(avatar) {
   
   // 默认情况
   return `/uploads/${avatar}`;
+}
+
+// 截断文本函数
+function truncateText(text, maxLength = 20) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
 }
 
 async function fetchComments() {
@@ -811,6 +839,28 @@ onBeforeUnmount(() => {
   margin-bottom: 6px;
 }
 
+/* 统计数据加载和错误状态样式 */
+.stats-loading {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.stats-error {
+  color: #ff7675;
+  text-align: center;
+  padding: 10px 0;
+  font-weight: 500;
+}
+
+/* 评论项链接样式 */
+.comment-item-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
 /* 评论项样式 */
 .comment-item {
   display: flex;
@@ -818,6 +868,19 @@ onBeforeUnmount(() => {
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid #eee;
+  transition: all 0.3s ease;
+}
+
+.comment-item-link:hover .comment-item {
+  background: rgba(255, 118, 117, 0.05);
+  transform: translateY(-2px);
+  border-radius: 8px;
+  padding: 8px 12px 16px;
+  margin-bottom: 8px;
+}
+
+.comment-item-link:hover .comment-text {
+  color: #ff7675;
 }
 
 .comment-item:last-child {

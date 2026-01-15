@@ -12,4 +12,7 @@ router.get('/', messageController.getAllMessages);
 // 添加新留言
 router.post('/', messageController.addMessage);
 
+// 更新留言位置
+router.put('/:id', messageController.updateMessagePosition);
+
 module.exports = router;

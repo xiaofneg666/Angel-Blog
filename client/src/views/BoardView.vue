@@ -88,7 +88,25 @@ function onDrag(e) {
   notes[dragIdx].x = e.clientX - offsetX;
   notes[dragIdx].y = e.clientY - offsetY;
 }
-function stopDrag() {
+async function stopDrag() {
+  if (dragIdx !== null) {
+    const note = notes[dragIdx];
+    // 保存位置到数据库
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:3000/api/messages/${note.id}`, {
+        x: note.x,
+        y: note.y
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('位置保存成功:', note.id, note.x, note.y);
+    } catch (error) {
+      console.error('保存位置失败:', error);
+    }
+  }
   dragIdx = null;
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);

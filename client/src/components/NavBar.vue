@@ -59,8 +59,9 @@
           <i class="iconfont icon-user"></i> 登录
         </router-link>
         <template v-else>
-          <span class="username">{{ authStore.user?.username }}</span>
-
+          <router-link :to="{ name: 'myhomeview', params: { id: authStore.user?.id } }" class="username-link">
+            <span class="username">{{ authStore.user?.username }}</span>
+          </router-link>
 
           <button @click="authStore.logout" class="nav-item">退出</button>
         </template>
@@ -368,10 +369,22 @@ function selectCursorStyle(style) {
   color: #fff;
 }
 
-.username {
+.username-link {
+  text-decoration: none;
   margin: 0 0.7rem;
+}
+
+.username {
   color: #fff;
   font-weight: bold;
+  transition: color 0.3s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.username-link:hover .username {
+  color: #409EFF;
+  background: rgba(64, 158, 255, 0.1);
 }
 
 button.nav-item {

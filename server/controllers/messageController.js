@@ -68,3 +68,27 @@ exports.getAllMessages = async (req, res) => {
     res.status(500).json({ message: '服务器错误', error: error.message });
   }
 };
+
+// 更新留言位置
+exports.updateMessagePosition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { x, y } = req.body;
+
+    // 验证必要字段
+    if (typeof x !== 'number' || typeof y !== 'number') {
+      return res.status(400).json({ message: '位置信息格式错误' });
+    }
+
+    // 更新数据库
+    await pool.query(
+      'UPDATE messages SET x = ?, y = ? WHERE id = ?',
+      [x, y, id]
+    );
+
+    res.json({ message: '位置更新成功' });
+  } catch (error) {
+    console.error('更新留言位置错误:', error);
+    res.status(500).json({ message: '服务器错误', error: error.message });
+  }
+};
