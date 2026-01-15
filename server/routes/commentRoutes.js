@@ -24,7 +24,7 @@ router.get('/comments/latest', async (req, res) => {
     // 处理评论数据格式
     const finalComments = comments.map(comment => ({
       ...comment,
-      avatar: comment.avatar ? `/head/${comment.avatar}` : `/head/${comment.user_id % 3 === 0 ? 'avatar-1768357856042-934867336.png' : comment.user_id % 3 === 1 ? 'avatar-1768382781202-85417187.png' : 'R.jpg'}`,
+      avatar: comment.avatar ? `/api/head/${comment.avatar.replace(/^\/head\//, '')}` : `/api/head/${comment.user_id % 3 === 0 ? 'avatar-1768357856042-934867336.png' : comment.user_id % 3 === 1 ? 'avatar-1768382781202-85417187.png' : 'R.jpg'}`,
       created_at: new Date(comment.created_at).toLocaleString('zh-CN')
     }));
 

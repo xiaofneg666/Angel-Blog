@@ -24,11 +24,10 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
-        ws: true,
-        rewrite: (path) => path
+        ws: true
       }
     },
     hmr: {
