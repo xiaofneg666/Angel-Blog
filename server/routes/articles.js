@@ -886,6 +886,132 @@ router.get('/admin', async (req, res) => {
   }
 });
 
+// 更新文章
+router.put('/:id', verifyToken, upload.single('cover_image'), async (req, res) => {
+  try {
+    console.log('收到更新文章请求:', {
+      body: req.body,
+      file: req.file,
+      user: req.user,
+      articleId: req.params.id
+    });
+
+    const { id } = req.params;
+    const { title, content, excerpt, article_type } = req.body;
+    const user = req.user;
+
+    // 检查用户是否登录
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: '用户未登录'
+      });
+    }
+
+    // 检查必填字段
+    if (!title || !content || !article_type) {
+      return res.status(400).json({
+        success: false,
+        message: '标题、内容和文章类型为必填项'
+      });
+    }
+
+    // 获取文章信息
+    const [articleRows] = await db.query('SELECT * FROM articles WHERE id = ?', [id]);
+    if (articleRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '文章不存在'
+      });
+    }
+
+    const article = articleRows[0];
+
+    // 检查用户是否是文章作者
+    if (article.author_id !== user.id) {
+      return res.status(403).json({
+        success: false,
+        message: '无权限更新该文章'
+      });
+    }
+
+    // 处理封面图片
+    let cover_image = article.cover_image;
+    if (req.file) {
+      // 删除旧的封面图片
+      const fs = require('fs');
+      if (cover_image) {
+        let oldImagePath = cover_image;
+        // 处理图片路径，确保是正确的本地路径
+        if (oldImagePath.startsWith('/uploads/')) {
+          oldImagePath = oldImagePath.substring(9); // 移除 /uploads/ 前缀
+        }
+        const fullOldPath = path.join(__dirname, '..', 'public', 'uploads', oldImagePath);
+        
+        // 检查文件是否存在并删除
+        if (fs.existsSync(fullOldPath)) {
+          fs.unlinkSync(fullOldPath);
+          console.log('旧封面图片已删除:', fullOldPath);
+        }
+      }
+      // 设置新的封面图片
+      cover_image = `/uploads/${req.file.filename}`;
+    }
+
+    // 生成摘要（如果没有提供）
+    const finalExcerpt = excerpt || (content.length > 200 ? content.substring(0, 200) + '...' : content);
+
+    // 更新数据库
+    const updateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    await db.query(
+      'UPDATE articles SET title = ?, content = ?, excerpt = ?, category_id = ?, cover_image = ?, update_time = ?, word_count = ? WHERE id = ?',
+      [
+        title,
+        content,
+        finalExcerpt,
+        article_type,
+        cover_image,
+        updateTime,
+        content.length,
+        id
+      ]
+    );
+
+    // 获取更新后的文章
+    const [updatedArticleRows] = await db.query(
+      `SELECT a.*, c.name as category_name 
+       FROM articles a 
+       LEFT JOIN categories c ON a.category_id = c.id 
+       WHERE a.id = ?`,
+      [id]
+    );
+
+    const updatedArticle = updatedArticleRows[0];
+
+    // 处理返回的图片路径
+    if (updatedArticle.cover_image) {
+      if (!updatedArticle.cover_image.startsWith('/uploads/')) {
+        updatedArticle.cover_image = `/uploads/${updatedArticle.cover_image}`;
+      }
+    }
+
+    console.log('文章更新成功:', updatedArticle.title);
+
+    res.json({
+      success: true,
+      message: '文章更新成功',
+      data: updatedArticle
+    });
+  } catch (error) {
+    console.error('更新文章失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新文章失败，请稍后重试',
+      error: error.message
+    });
+  }
+});
+
 // 更新文章封面
 router.put('/:id/cover', verifyToken, (req, res, next) => {
   upload.single('cover_image')(req, res, (err) => {

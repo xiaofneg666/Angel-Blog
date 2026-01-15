@@ -952,10 +952,12 @@ const handleCoverChange = async (event) => {
 
 /* Article Actions */
 .post-actions-wrapper {
-  padding: 1.2rem 1.5rem;
+  padding: 1.5rem 1.5rem;
   border-top: 1px solid var(--border-color);
   background: var(--sidebar-bg);
   margin-top: 1.5rem;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.03);
 }
 
 .post-actions {
@@ -968,30 +970,102 @@ const handleCoverChange = async (event) => {
 
 .action-group {
   display: flex;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
+  padding: 0.75rem 1.5rem;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: 25px;
   background: white;
   color: var(--text-color);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .action-btn i {
-  font-size: 1rem;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.action-btn.like-btn {
+  color: #666;
+  border-color: #e0e0e0;
+}
+
+.action-btn.like-btn:hover:not(:disabled) {
+  color: #ff4757;
+  border-color: #ff4757;
+  background: rgba(255, 71, 87, 0.05);
+}
+
+.action-btn.like-btn.active {
+  color: #ff4757;
+  border-color: #ff4757;
+  background: rgba(255, 71, 87, 0.1);
+}
+
+.action-btn.like-btn i.filled {
+  color: #ff4757;
+  animation: heartBeat 0.6s ease-in-out;
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.action-btn.favorite-btn {
+  color: #666;
+  border-color: #e0e0e0;
+}
+
+.action-btn.favorite-btn:hover:not(:disabled) {
+  color: #ffa502;
+  border-color: #ffa502;
+  background: rgba(255, 165, 2, 0.05);
+}
+
+.action-btn.favorite-btn.active {
+  color: #ffa502;
+  border-color: #ffa502;
+  background: rgba(255, 165, 2, 0.1);
+}
+
+.action-btn.favorite-btn i.filled {
+  color: #ffa502;
+  animation: starPulse 0.5s ease-in-out;
+}
+
+@keyframes starPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 /* 评论区域整体美化 */
@@ -1285,70 +1359,63 @@ const handleCoverChange = async (event) => {
   font-size: 1.1rem;
 }
 
-/* 文章操作按钮样式 */
-.article-actions {
-  display: flex;
-  gap: 1rem;
-  margin-left: auto;
-}
-
-.action-btn {
+/* 编辑和删除按钮样式 */
+.action-button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 25px;
   background: white;
   color: var(--text-color);
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  text-decoration: none;
 }
 
-.action-btn:hover:not(:disabled) {
+.action-button:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.action-btn.active {
-  color: #ff4757;
-  border-color: #ff4757;
-  background: rgba(255, 71, 87, 0.1);
+.action-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.action-button.edit-button {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background: rgba(66, 185, 131, 0.05);
 }
 
-.action-btn i {
-  font-size: 1.1rem;
+.action-button.edit-button:hover {
+  background: rgba(66, 185, 131, 0.1);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.2);
 }
 
-.action-btn i.filled {
-  color: #ff4757;
+.action-button.delete-button {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.05);
 }
 
-.like-btn:hover:not(:disabled) {
-  color: #ff4757;
-  border-color: #ff4757;
-  background: rgba(255, 71, 87, 0.1);
+.action-button.delete-button:hover {
+  background: rgba(255, 107, 107, 0.1);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
 }
 
-.favorite-btn:hover:not(:disabled) {
-  color: #ffa502;
-  border-color: #ffa502;
-  background: rgba(255, 165, 2, 0.1);
-}
-
-.favorite-btn.active {
-  color: #ffa502;
-  border-color: #ffa502;
-  background: rgba(255, 165, 2, 0.1);
-}
-
-.favorite-btn i.filled {
-  color: #ffa502;
+/* 适配移动端 */
+@media (max-width: 768px) {
+  .action-button {
+    flex: 1;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
 }
 </style>
