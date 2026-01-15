@@ -30,7 +30,7 @@ app.use(express.json());
 
 // 配置CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://yourdomain.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -96,9 +96,8 @@ if (!fs.existsSync(uploadsPath)) {
 
 // 配置静态文件服务
 app.use('/api/uploads', (req, res, next) => {
-  // 设置CORS头
   res.set({
-    'Access-Control-Allow-Origin': 'http://localhost:5173',
+    'Access-Control-Allow-Origin': 'https://yourdomain.com',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
@@ -108,7 +107,6 @@ app.use('/api/uploads', (req, res, next) => {
     'Cache-Control': 'public, max-age=31536000'
   });
 
-  // 记录请求信息
   console.log('静态文件请求:', {
     path: req.path,
     headers: res.getHeaders()
@@ -122,7 +120,7 @@ app.get('/api/default-cover', (req, res) => {
   const defaultCoverPath = path.join(uploadsPath, '1749919075986-308926987.webp');
   res.sendFile(defaultCoverPath, {
     headers: {
-      'Access-Control-Allow-Origin': 'http://localhost:5173',
+      'Access-Control-Allow-Origin': 'https://yourdomain.com',
       'Cross-Origin-Resource-Policy': 'cross-origin',
       'Cache-Control': 'public, max-age=31536000'
     }

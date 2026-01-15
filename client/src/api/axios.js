@@ -3,7 +3,9 @@ import axios from 'axios';
 
 // 创建axios实例
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: import.meta.env.PROD 
+    ? 'https://yourdomain.com/api' 
+    : '/api',
   withCredentials: false,
   headers: {
     Accept: 'application/json',

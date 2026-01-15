@@ -354,113 +354,250 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.dashboard-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+/* 全局变量 */
+:root {
+  --primary-color: #409eff;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+  --bg-color: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #c0c4cc;
+  --border-color: #e4e7ed;
+  --border-light: #ebeef5;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-base: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 24px 0 rgba(0, 0, 0, 0.15);
+  --transition-base: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  --transition-fast: all 0.2s ease-in-out;
 }
 
+/* 基础样式重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-regular);
+}
+
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: var(--bg-color);
+}
+
+/* 标题样式 */
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 统计卡片区域 */
 .stats-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .stat-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s;
+  background: linear-gradient(135deg, var(--card-bg) 0%, #fafafa 100%);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary-color), #66b1ff);
+  border-radius: 12px 0 0 12px;
 }
 
 .stat-card:hover {
   transform: translateY(-5px);
+  box-shadow: var(--shadow-base);
+}
+
+.stat-card:nth-child(1)::before {
+  background: linear-gradient(180deg, var(--primary-color), #66b1ff);
+}
+
+.stat-card:nth-child(2)::before {
+  background: linear-gradient(180deg, var(--success-color), #85ce61);
+}
+
+.stat-card:nth-child(3)::before {
+  background: linear-gradient(180deg, var(--warning-color), #ebb563);
+}
+
+.stat-card:nth-child(4)::before {
+  background: linear-gradient(180deg, var(--danger-color), #f78989);
 }
 
 .stat-title {
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 5px;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
 }
 
 .stat-desc {
-  font-size: 12px;
-  color: #909399;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .stat-increase {
-  color: #67c23a;
+  color: var(--success-color);
+  font-weight: 500;
 }
 
 .stat-decrease {
-  color: #f56c6c;
+  color: var(--danger-color);
+  font-weight: 500;
 }
 
+/* 图表区域 */
 .charts-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(580px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
 .chart-card {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  transition: var(--transition-fast);
+  border: 1px solid var(--border-light);
+}
+
+.chart-card:hover {
+  box-shadow: var(--shadow-base);
 }
 
 .chart-header {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .chart-header h2 {
   font-size: 16px;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0;
+  font-weight: 600;
 }
 
 .chart-container {
-  height: 300px;
+  height: 320px;
+  position: relative;
 }
 
+/* 最近活动区域 */
 .recent-activity {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  border: 1px solid var(--border-light);
 }
 
 .recent-activity h2 {
   font-size: 16px;
-  color: #303133;
+  color: var(--text-primary);
   margin-top: 0;
   margin-bottom: 20px;
+  font-weight: 600;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .activity-list {
-  max-height: 300px;
+  max-height: 360px;
   overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* 自定义滚动条 */
+.activity-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-list::-webkit-scrollbar-track {
+  background: var(--border-light);
+  border-radius: 3px;
+}
+
+.activity-list::-webkit-scrollbar-thumb {
+  background: var(--text-placeholder);
+  border-radius: 3px;
+}
+
+.activity-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 .activity-item {
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 16px;
+  transition: var(--transition-fast);
+}
+
+.activity-item:hover {
+  background-color: #fafafa;
+  padding-left: 12px;
+  border-radius: 8px;
 }
 
 .activity-item:last-child {
@@ -469,28 +606,31 @@ onUnmounted(() => {
 
 .activity-item.empty {
   justify-content: center;
-  color: #909399;
-  padding: 40px 0;
+  color: var(--text-secondary);
+  padding: 60px 0;
+  font-size: 14px;
 }
 
 .activity-icon {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: 18px;
+  transition: var(--transition-fast);
 }
 
 .activity-icon.article {
-  background-color: rgba(64, 158, 255, 0.1);
-  color: #409eff;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(64, 158, 255, 0.05));
+  color: var(--primary-color);
 }
 
 .activity-icon.comment {
-  background-color: rgba(103, 194, 58, 0.1);
-  color: #67c23a;
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.1), rgba(103, 194, 58, 0.05));
+  color: var(--success-color);
 }
 
 .activity-content {
@@ -499,30 +639,41 @@ onUnmounted(() => {
 }
 
 .activity-user {
-  font-weight: 500;
-  color: #303133;
+  font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 4px;
+  font-size: 14px;
 }
 
 .activity-text {
-  color: #606266;
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-regular);
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .activity-time {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .activity-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: #f5f5f5;
+  background-color: var(--border-light);
+  border: 2px solid var(--card-bg);
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.activity-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-base);
 }
 
 /* 加载动画 */
@@ -530,23 +681,39 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .loading {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #409eff;
+  border: 2px solid var(--border-light);
+  border-top: 2px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 8px;
 }
 
 .error-message {
-  background-color: #fef0f0;
-  color: #f56c6c;
-  padding: 12px 20px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, #fef0f0, #fdf2f2);
+  color: var(--danger-color);
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #fbc4c4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.error-message::before {
+  content: '⚠';
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .loading-overlay {
@@ -555,26 +722,57 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(2px);
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #409eff;
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-light);
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .loading-text {
-  color: #606266;
+  color: var(--text-regular);
   font-size: 14px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+  
+  .stats-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .charts-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .chart-card {
+    padding: 16px;
+  }
+  
+  .chart-container {
+    height: 280px;
+  }
+  
+  .recent-activity {
+    padding: 16px;
+  }
 }
 </style>
