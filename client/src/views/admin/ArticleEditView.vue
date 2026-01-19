@@ -264,6 +264,13 @@ const loadArticle = async () => {
       // 确保content字段存在
       const content = data.content || '';
       
+      // 状态映射：数据库状态 -> 前端状态
+      const statusMap = {
+        '待审核': 'draft',
+        '审核通过': 'published',
+        '已拒绝': 'pending'
+      };
+      
       // 更新表单数据，注意字段映射关系
   form.value = {
     title: data.title || '',
@@ -273,7 +280,7 @@ const loadArticle = async () => {
     articleType: data.article_type || '1', // 注意字段名是 article_type，不是 articleType
     coverImage: data.cover_image || '', // 注意字段名是 cover_image，不是 coverImage
     coverImageFile: null,
-    status: data.status || 'draft'
+    status: statusMap[data.status] || 'draft'
   };
       
       // 确保编辑器已初始化，然后设置内容

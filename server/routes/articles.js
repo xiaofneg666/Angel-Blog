@@ -469,7 +469,7 @@ router.post('/', verifyToken, upload.single('coverImage'), async (req, res) => {
     });
 
     // 检查必填字段
-    const { title, content, articleType } = req.body;
+    const { title, content, articleType, status } = req.body;
     if (!title || !content || !articleType) {
       console.log('缺少必填字段:', { title, content, articleType });
       return res.status(400).json({
@@ -509,11 +509,24 @@ router.post('/', verifyToken, upload.single('coverImage'), async (req, res) => {
     const sensitiveCheck = checkArticle(article);
     console.log('敏感词检查结果:', sensitiveCheck);
 
-    // 根据敏感词检查结果设置文章状态
-    let status = '审核通过'; // 默认状态为审核通过
+    // 状态映射：前端状态 -> 数据库状态
+    const statusMap = {
+      'draft': '待审核',
+      'published': '审核通过',
+      'pending': '待审核'
+    };
+    
+    // 根据前端传递的状态和敏感词检查结果设置文章状态
+    let finalStatus;
+    
     if (sensitiveCheck.hasSensitiveWords) {
-      status = '待审核'; // 包含敏感词时设置为待审核
-      console.log('文章包含敏感词，设置为待审核状态');
+      // 包含敏感词时，无论用户选择什么状态，都强制设置为待审核
+      finalStatus = '待审核';
+      console.log('文章包含敏感词，强制设置为待审核状态');
+    } else {
+      // 不包含敏感词时，尊重用户选择的状态
+      finalStatus = statusMap[status] || '审核通过';
+      console.log('文章不包含敏感词，使用用户选择的状态:', status, '->', finalStatus);
     }
 
     // 插入文章数据
@@ -528,7 +541,7 @@ router.post('/', verifyToken, upload.single('coverImage'), async (req, res) => {
         excerpt,
         articleType, // 这里直接用 articleType 作为 category_id
         coverImage,
-        status,
+        finalStatus,
         req.user?.id || 1,
         content.length
       ]
@@ -854,7 +867,7 @@ router.put('/:id', verifyToken, upload.single('cover_image'), async (req, res) =
     });
 
     const { id } = req.params;
-    const { title, content, excerpt, article_type } = req.body;
+    const { title, content, excerpt, article_type, status } = req.body;
     const user = req.user;
 
     // 检查用户是否登录
@@ -917,17 +930,31 @@ router.put('/:id', verifyToken, upload.single('cover_image'), async (req, res) =
 
     // 生成摘要（如果没有提供）
     const finalExcerpt = excerpt || (content.length > 200 ? content.substring(0, 200) + '...' : content);
+    
+    // 状态映射：前端状态 -> 数据库状态
+    const statusMap = {
+      'draft': '待审核',
+      'published': '审核通过',
+      'pending': '待审核'
+    };
+    
+    // 处理状态，默认保持原状态
+    let finalStatus = article.status;
+    if (status) {
+      finalStatus = statusMap[status] || article.status;
+    }
 
     // 更新数据库
     const updateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
     await db.query(
-      'UPDATE articles SET title = ?, content = ?, excerpt = ?, category_id = ?, cover_image = ?, update_time = ?, word_count = ? WHERE id = ?',
+      'UPDATE articles SET title = ?, content = ?, excerpt = ?, category_id = ?, cover_image = ?, status = ?, update_time = ?, word_count = ? WHERE id = ?',
       [
         title,
         content,
         finalExcerpt,
         article_type,
         cover_image,
+        finalStatus,
         updateTime,
         content.length,
         id
