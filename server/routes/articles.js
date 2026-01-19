@@ -884,8 +884,8 @@ router.put('/:id', verifyToken, upload.single('cover_image'), async (req, res) =
 
     const article = articleRows[0];
 
-    // 检查用户是否是文章作者
-    if (article.author_id !== user.id) {
+    // 检查用户是否是文章作者或管理员
+    if (article.author_id !== user.id && user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '无权限更新该文章'
@@ -1016,8 +1016,8 @@ router.put('/:id/cover', verifyToken, (req, res, next) => {
 
     const article = articleRows[0];
 
-    // 检查用户是否是文章作者
-    if (article.author_id !== user.id) {
+    // 检查用户是否是文章作者或管理员
+    if (article.author_id !== user.id && user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: '无权限更新该文章封面'

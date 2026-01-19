@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // 修正为后端实际接口路径
-const UPLOAD_URL = 'http://localhost:3000/api/posts/upload';
+const UPLOAD_URL = '/api/posts/upload';
 
 export async function uploadImage(file) {
   const formData = new FormData();

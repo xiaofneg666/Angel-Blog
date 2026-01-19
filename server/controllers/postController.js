@@ -297,16 +297,26 @@ exports.deletePost = async (req, res) => {
 exports.uploadImage = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: '没有上传文件' });
+      return res.status(400).json({
+        success: false,
+        message: '没有上传文件'
+      });
     }
 
     const imageUrl = `/uploads/${req.file.filename}`;
     res.json({
-      url: imageUrl,
+      success: true,
+      data: {
+        url: imageUrl
+      },
       message: '图片上传成功'
     });
   } catch (error) {
     console.error('上传图片错误:', error);
-    res.status(500).json({ message: '服务器错误', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: '服务器错误',
+      error: error.message
+    });
   }
 };

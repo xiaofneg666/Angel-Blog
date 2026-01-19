@@ -1,6 +1,6 @@
 <template>
-  <div class="dashboard-container">
-    <h1>仪表盘</h1>
+  <div class="dashboard-management">
+    <h1 class="page-title">仪表盘</h1>
 
     <!-- 错误提示 -->
     <div v-if="error" class="error-message">
@@ -391,15 +391,16 @@ body {
   color: var(--text-regular);
 }
 
-.dashboard-container {
+.dashboard-management {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px;
   background-color: var(--bg-color);
+  min-height: calc(100vh - 60px);
 }
 
 /* 标题样式 */
-h1 {
+.page-title {
   font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);
@@ -508,15 +509,18 @@ h2 {
 }
 
 .chart-card {
-  background: var(--card-bg);
+  background: linear-gradient(135deg, var(--card-bg) 0%, #fafafa 100%);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   padding: 24px;
-  transition: var(--transition-fast);
+  transition: var(--transition-base);
   border: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
 }
 
 .chart-card:hover {
+  transform: translateY(-4px);
   box-shadow: var(--shadow-base);
 }
 
@@ -543,11 +547,18 @@ h2 {
 
 /* 最近活动区域 */
 .recent-activity {
-  background: var(--card-bg);
+  background: linear-gradient(135deg, var(--card-bg) 0%, #fafafa 100%);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   padding: 24px;
   border: 1px solid var(--border-light);
+  transition: var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.recent-activity:hover {
+  box-shadow: var(--shadow-base);
 }
 
 .recent-activity h2 {
@@ -749,7 +760,7 @@ h2 {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .dashboard-container {
+  .dashboard-management {
     padding: 16px;
   }
   

@@ -94,16 +94,15 @@ if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }
 
-// 配置静态文件服务
-app.use('/api/uploads', (req, res, next) => {
+// 配置静态文件服务 - 允许直接通过/uploads访问，不需要/api前缀
+app.use('/uploads', (req, res, next) => {
+  // 允许所有来源访问
   res.set({
-    'Access-Control-Allow-Origin': 'https://yourdomain.com',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
     'Cross-Origin-Resource-Policy': 'cross-origin',
-    'Cross-Origin-Embedder-Policy': 'require-corp',
-    'Cross-Origin-Opener-Policy': 'same-origin',
     'Cache-Control': 'public, max-age=31536000'
   });
 
@@ -114,6 +113,9 @@ app.use('/api/uploads', (req, res, next) => {
 
   next();
 }, express.static(uploadsPath));
+
+// 同时保留/api/uploads路径用于向后兼容
+app.use('/api/uploads', express.static(uploadsPath));
 
 // 添加默认封面图片路由
 app.get('/api/default-cover', (req, res) => {

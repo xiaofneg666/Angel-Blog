@@ -1,7 +1,7 @@
 
 <template>
   <div class="category-management">
-    <h1>分类管理</h1>
+    <h1 class="page-title">分类管理</h1>
 
     <!-- 搜索和操作栏 -->
     <div class="operation-bar">
@@ -90,7 +90,7 @@
 }
 
 /* 标题样式 */
-h1 {
+.page-title {
   font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);

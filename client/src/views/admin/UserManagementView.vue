@@ -10,7 +10,7 @@
 <template>
   <div class="user-management">
     <div class="header">
-      <h2>用户管理</h2>
+      <h1 class="page-title">用户管理</h1>
       <div class="filters">
         <el-input
           v-model="searchKeyword"
@@ -446,23 +446,12 @@ onMounted(() => {
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
-  .filters {
-    flex-direction: column;
-  }
-  
-  .filters .el-input,
-  .filters .el-select {
-    width: 100%;
-  }
-}
-
 @media (max-width: 768px) {
   .user-management {
     padding: 16px;
   }
   
-  .header h2 {
+  .header .page-title {
     font-size: 20px;
   }
   

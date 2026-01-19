@@ -145,6 +145,18 @@ const routes = [
         meta: { title: '文章管理 - 后台管理' }
       },
       { 
+        path: 'articles/new', 
+        name: 'admin-article-new', 
+        component: () => import('@/views/admin/ArticleEditView.vue'),
+        meta: { title: '新建文章 - 后台管理' }
+      },
+      { 
+        path: 'articles/edit/:id', 
+        name: 'admin-article-edit', 
+        component: () => import('@/views/admin/ArticleEditView.vue'),
+        meta: { title: '编辑文章 - 后台管理' }
+      },
+      { 
         path: 'users', 
         name: 'admin-users', 
         component: () => import('@/views/admin/UserManagementView.vue'),

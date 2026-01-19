@@ -148,6 +148,7 @@
   overflow: hidden;
   transition: var(--transition-base);
   border: 1px solid var(--border-light);
+  border-left: 4px solid var(--primary-color);
 }
 
 .setting-card:hover {

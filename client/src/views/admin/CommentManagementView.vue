@@ -1,6 +1,6 @@
 <template>
   <div class="comment-management">
-    <h1>评论管理</h1>
+    <h1 class="page-title">评论管理</h1>
 
     <!-- 简单搜索 -->
     <div class="search-box">
@@ -140,7 +140,7 @@ onMounted(() => {
 }
 
 /* 标题样式 */
-h1 {
+.page-title {
   font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);
@@ -234,28 +234,16 @@ h1 {
   transition: var(--transition-base);
   position: relative;
   overflow: hidden;
-}
-
-.comment-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(180deg, var(--primary-color), #66b1ff);
-  opacity: 0;
-  transition: var(--transition-fast);
+  background: linear-gradient(135deg, var(--card-bg) 0%, #fafafa 100%);
+  border-left: 4px solid transparent;
+  box-shadow: inset 0 0 0 0 var(--primary-color);
 }
 
 .comment-item:hover {
   background-color: #fafafa;
-  transform: translateX(8px);
+  transform: translateX(4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.comment-item:hover::before {
-  opacity: 1;
+  border-left-color: var(--primary-color);
 }
 
 .comment-item:last-child {
