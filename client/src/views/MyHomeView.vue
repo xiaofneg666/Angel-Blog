@@ -160,6 +160,7 @@ import { useRoute } from 'vue-router';
 import NavBar from '@/components/NavBar.vue';
 import ArticleCard from '@/components/ArticleCard.vue';
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 
 /* ---------- 状态 ---------- */
 const authStore = useAuthStore();
@@ -373,14 +374,21 @@ const formatArticles = (list) =>
 const handleLike = async (id, liked) => {
   try {
     const method = liked ? 'DELETE' : 'POST';
-    await axios({ method: method, url: `/api/articles/${id}/like` });
-    const a = articles.value.find((x) => x.id === id);
-    if (a) {
-      a.is_liked = !liked;
-      a.like_count += liked ? -1 : 1;
+    const response = await axios({ method: method, url: `/api/articles/${id}/like` });
+    const data = response.data;
+    
+    if (data.success) {
+      const a = articles.value.find((x) => x.id === id);
+      if (a) {
+        a.is_liked = !liked;
+        a.like_count += liked ? -1 : 1;
+      }
+    } else {
+      ElMessage.error(data.message || (liked ? '取消点赞失败' : '点赞失败'));
     }
   } catch (e) {
     console.error('点赞操作失败:', e);
+    ElMessage.error('操作失败，请稍后重试');
   }
 };
 

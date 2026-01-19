@@ -163,7 +163,7 @@ const friendLinks = ref([
   // 个人网站
   {
     name: '我的个人网站',
-    url: ' http://localhost:5173/',//有服务器了再改
+    url: 'http://localhost:5173/',//有服务器了再改
     logo: '/1.jpg',
     category: '个人博客',
     description: '分享我的学习心得、技术实践和生活感悟，记录成长的每一步',

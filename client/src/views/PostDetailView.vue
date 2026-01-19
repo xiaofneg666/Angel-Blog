@@ -511,11 +511,15 @@ const handleLike = async () => {
       }
     })
 
-    if (!response.ok) {
-      throw new Error(currentLiked ? '取消点赞失败' : '点赞失败')
+    // 如果是认证错误，清除过期的token并提示用户重新登录
+    if (response.status === 401) {
+      authStore.logout();
+      ElMessage.error('登录已过期，请重新登录');
+      return;
     }
 
     const data = await response.json()
+    
     if (data.success) {
       // 更新文章数据
       articleStore.currentArticle = {
@@ -526,6 +530,8 @@ const handleLike = async () => {
           : articleStore.currentArticle.likes_count + 1
       }
       ElMessage.success(currentLiked ? '取消点赞成功' : '点赞成功')
+    } else {
+      ElMessage.error(data.message || (currentLiked ? '取消点赞失败' : '点赞失败'))
     }
   } catch (error) {
     console.error('点赞操作失败:', error)

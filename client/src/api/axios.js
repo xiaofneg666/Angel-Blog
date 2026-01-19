@@ -35,10 +35,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // 处理未认证错误
-      // 移除本地存储的token
-      localStorage.removeItem('token');
-      // 跳转到登录页
-      window.location.href = '/login';
+      // 导入authStore（使用动态导入避免循环依赖）
+      import('@/stores/authStore').then(({ useAuthStore }) => {
+        const authStore = useAuthStore();
+        authStore.logout();
+      });
     }
     return Promise.reject(error);
   }
