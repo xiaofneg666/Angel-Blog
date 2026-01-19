@@ -34,7 +34,7 @@ const auth = async (req, res, next) => {
     // 将完整的用户信息添加到请求对象
     req.user = {
       ...decoded,
-      userId: users[0].id,
+      id: users[0].id,
       username: users[0].username,
       avatar: users[0].avatar,
       role: users[0].role

@@ -657,6 +657,18 @@ router.get('/user/:userId/stats', async (req, res) => {
       [userId, '审核通过']
     );
 
+    // 获取用户点赞的文章数量
+    const [likeCount] = await db.query(
+      'SELECT COUNT(*) as total FROM article_likes WHERE user_id = ? AND article_id IN (SELECT id FROM articles WHERE status = ?)',
+      [userId, '审核通过']
+    );
+
+    // 获取用户收藏的文章数量
+    const [collectionCount] = await db.query(
+      'SELECT COUNT(*) as total FROM article_collections WHERE user_id = ? AND article_id IN (SELECT id FROM articles WHERE status = ?)',
+      [userId, '审核通过']
+    );
+
     // 获取所有发布的文章
     const [recentArticles] = await db.query(
       `SELECT 
@@ -667,12 +679,14 @@ router.get('/user/:userId/stats', async (req, res) => {
         a.publish_time,
         a.view_count,
         u.username as author_name,
-        (SELECT COUNT(*) FROM comments WHERE article_id = a.id) as comment_count
+        (SELECT COUNT(*) FROM comments WHERE article_id = a.id) as comment_count,
+        (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as like_count,
+        EXISTS(SELECT 1 FROM article_likes WHERE article_id = a.id AND user_id = ?) as is_liked
       FROM articles a
       LEFT JOIN users u ON a.author_id = u.id
       WHERE a.author_id = ? AND a.status = '审核通过'
       ORDER BY a.publish_time DESC`,
-      [userId]
+      [userId, userId]
     );
     
     // 处理文章封面图片路径
@@ -699,7 +713,9 @@ router.get('/user/:userId/stats', async (req, res) => {
         stats: {
           articleCount: articleCount[0].total,
           viewCount: viewCount[0].total,
-          commentCount: commentCount[0].total
+          commentCount: commentCount[0].total,
+          likeCount: likeCount[0].total,
+          collectionCount: collectionCount[0].total
         },
         recentArticles: processedRecentArticles
       }
@@ -725,16 +741,14 @@ router.get('/user/:userId/liked', async (req, res) => {
         c.name as category_name,
         u.username as author_name,
         (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as like_count,
-        (SELECT COUNT(*) FROM article_collections WHERE article_id = a.id) as collection_count,
-        TRUE as is_liked,
-        EXISTS(SELECT 1 FROM article_collections WHERE article_id = a.id AND user_id = ?) as is_collected
+        TRUE as is_liked
       FROM articles a
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN users u ON a.author_id = u.id
       INNER JOIN article_likes al ON a.id = al.article_id
       WHERE al.user_id = ? AND a.status = '审核通过'
-      ORDER BY al.created_at DESC
-    `, [userId, userId]);
+      ORDER BY a.publish_time DESC
+    `, [userId]);
 
     // 处理文章数据
     const processedArticles = articles.map(article => {
@@ -767,63 +781,6 @@ router.get('/user/:userId/liked', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '获取用户点赞文章失败'
-    });
-  }
-});
-
-// 获取用户收藏的文章
-router.get('/user/:userId/collected', async (req, res) => {
-  try {
-    const userId = req.params.userId;
-
-    const [articles] = await db.query(`
-      SELECT 
-        a.*,
-        c.name as category_name,
-        u.username as author_name,
-        (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as like_count,
-        (SELECT COUNT(*) FROM article_collections WHERE article_id = a.id) as collection_count,
-        EXISTS(SELECT 1 FROM article_likes WHERE article_id = a.id AND user_id = ?) as is_liked,
-        TRUE as is_collected
-      FROM articles a
-      LEFT JOIN categories c ON a.category_id = c.id
-      LEFT JOIN users u ON a.author_id = u.id
-      INNER JOIN article_collections ac ON a.id = ac.article_id
-      WHERE ac.user_id = ? AND a.status = '审核通过'
-      ORDER BY ac.created_at DESC
-    `, [userId, userId]);
-
-    // 处理文章数据
-    const processedArticles = articles.map(article => {
-      let coverImage = article.cover_image;
-      if (coverImage) {
-        if (!coverImage.startsWith('/uploads/')) {
-          coverImage = `/uploads/${coverImage}`;
-        }
-      } else {
-        coverImage = '/1.jpg';
-      }
-
-      return {
-        ...article,
-        cover_image: coverImage,
-        publish_time: new Date(article.publish_time).toLocaleDateString('zh-CN', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      };
-    });
-
-    res.json({
-      success: true,
-      data: processedArticles
-    });
-  } catch (error) {
-    console.error('获取用户收藏文章失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '获取用户收藏文章失败'
     });
   }
 });
@@ -1190,6 +1147,137 @@ router.delete('/:id', verifyToken, async (req, res) => {
       success: false,
       message: '删除文章失败，请稍后重试',
       error: error.message
+    });
+  }
+});
+
+// 文章点赞功能
+router.post('/:id/like', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // 开始事务
+    await db.query('START TRANSACTION');
+
+    // 检查是否已经点赞
+    const [existingLike] = await db.query(
+      'SELECT * FROM article_likes WHERE article_id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (existingLike.length > 0) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: '已经点赞过该文章'
+      });
+    }
+
+    // 添加点赞记录
+    await db.query(
+      'INSERT INTO article_likes (article_id, user_id) VALUES (?, ?)',
+      [id, userId]
+    );
+
+    // 更新文章点赞数
+    await db.query(
+      'UPDATE articles SET likes_count = likes_count + 1 WHERE id = ?',
+      [id]
+    );
+
+    // 提交事务
+    await db.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: '文章点赞成功'
+    });
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('文章点赞失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '文章点赞失败'
+    });
+  }
+});
+
+// 文章取消点赞功能
+router.delete('/:id/like', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // 开始事务
+    await db.query('START TRANSACTION');
+
+    // 检查是否已经点赞
+    const [existingLike] = await db.query(
+      'SELECT * FROM article_likes WHERE article_id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (existingLike.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: '还没有点赞该文章'
+      });
+    }
+
+    // 删除点赞记录
+    await db.query(
+      'DELETE FROM article_likes WHERE article_id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    // 更新文章点赞数
+    await db.query(
+      'UPDATE articles SET likes_count = likes_count - 1 WHERE id = ?',
+      [id]
+    );
+
+    // 提交事务
+    await db.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: '取消点赞成功'
+    });
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('取消点赞失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '取消点赞失败'
+    });
+  }
+});
+
+// 检查用户是否点赞了文章
+router.get('/:id/user-status', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // 检查是否点赞
+    const [likeStatus] = await db.query(
+      'SELECT EXISTS(SELECT 1 FROM article_likes WHERE article_id = ? AND user_id = ?) as is_liked',
+      [id, userId]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        is_liked: likeStatus[0].is_liked === 1
+      }
+    });
+  } catch (error) {
+    console.error('获取用户文章状态失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取用户文章状态失败'
     });
   }
 });

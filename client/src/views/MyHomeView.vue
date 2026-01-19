@@ -74,7 +74,6 @@
           :article="article"
           :layout="isGrid ? 'grid' : 'list'"
           @like="handleLike"
-          @collect="handleCollect"
         />
       </div>
 
@@ -188,8 +187,7 @@ const userId = computed(() => route.params.id || authStore.user?.id);
 
 const tabs = computed(() => [
   { key: 'posts', label: '我的文章', icon: 'iconfont icon-article', count: articleStats.value.posts },
-  { key: 'liked', label: '点赞文章', icon: 'iconfont icon-like', count: articleStats.value.likes },
-  { key: 'collected', label: '收藏文章', icon: 'iconfont icon-star', count: articleStats.value.collections }
+  { key: 'liked', label: '点赞文章', icon: 'iconfont icon-like', count: articleStats.value.likes }
 ]);
 
 /* ---------- 计算属性 ---------- */
@@ -312,8 +310,8 @@ const fetchUserData = async () => {
       };
       articleStats.value = {
         posts: stats.articleCount,
-        likes: 0,
-        collections: 0
+        likes: stats.likeCount || 0,
+        collections: stats.collectionCount || 0
       };
       articles.value = formatArticles(recentArticles);
     }
@@ -340,9 +338,6 @@ const fetchArticles = async () => {
         break;
       case 'liked':
         url = `/api/articles/user/${userId.value}/liked`;
-        break;
-      case 'collected':
-        url = `/api/articles/user/${userId.value}/collected`;
         break;
     }
     const { data } = await axios.get(url);
@@ -371,37 +366,25 @@ const formatArticles = (list) =>
     author_name: a.author_name || '未知作者',
     excerpt: a.excerpt || '暂无摘要',
     like_count: a.like_count || 0,
-    collection_count: a.collection_count || 0,
-    is_liked: a.is_liked || false,
-    is_collected: a.is_collected || false
+    is_liked: a.is_liked || false
   }));
 
 /* ---------- 点赞 / 收藏 ---------- */
 const handleLike = async (id, liked) => {
   try {
-    await axios.post(`/api/articles/${id}/like`, { isLiked: !liked });
+    const method = liked ? 'DELETE' : 'POST';
+    await axios({ method: method, url: `/api/articles/${id}/like` });
     const a = articles.value.find((x) => x.id === id);
     if (a) {
       a.is_liked = !liked;
       a.like_count += liked ? -1 : 1;
     }
   } catch (e) {
-    console.error('点赞失败:', e);
+    console.error('点赞操作失败:', e);
   }
 };
 
-const handleCollect = async (id, collected) => {
-  try {
-    await axios.post(`/api/articles/${id}/collect`, { isCollected: !collected });
-    const a = articles.value.find((x) => x.id === id);
-    if (a) {
-      a.is_collected = !collected;
-      a.collection_count += collected ? -1 : 1;
-    }
-  } catch (e) {
-    console.error('收藏失败:', e);
-  }
-};
+
 
 /* ---------- 生命周期 ---------- */
 onMounted(() => {

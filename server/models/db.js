@@ -197,6 +197,39 @@ async function initializeDatabase() {
       ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='名言警句存储表'
     `);
 
+    // 新增：文章点赞表（使用IF NOT EXISTS避免重复创建）
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS article_likes (
+        id BIGINT NOT NULL AUTO_INCREMENT COMMENT '点赞ID',
+        article_id BIGINT NOT NULL COMMENT '关联的文章ID',
+        user_id INT NOT NULL COMMENT '点赞用户ID',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
+        PRIMARY KEY (id),
+        UNIQUE INDEX article_user_like_unique (article_id, user_id),
+        INDEX idx_article_id (article_id),
+        INDEX idx_user_id (user_id),
+        FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文章点赞表'
+    `);
+
+    // 检查并添加文章表的点赞数字段
+    try {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = 'blog_db' 
+        AND TABLE_NAME = 'articles' 
+        AND COLUMN_NAME = 'likes_count'
+      `);
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE articles ADD COLUMN likes_count INT NOT NULL DEFAULT 0 COMMENT '点赞数'`);
+        console.log('likes_count字段添加成功');
+      }
+    } catch (error) {
+      console.error('添加likes_count字段失败:', error);
+    }
+
     connection.release();
     console.log('数据库表初始化完成（已同步 blog_db.sql 所有表结构）');
   } catch (error) {

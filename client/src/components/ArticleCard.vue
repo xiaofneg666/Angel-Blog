@@ -10,7 +10,6 @@
       </div>
       <div class="actions">
         <button @click.stop="$emit('like', article.id, article.is_liked)">{{ article.is_liked ? '取消点赞' : '点赞' }} ({{ article.like_count || 0 }})</button>
-        <button @click.stop="$emit('collect', article.id, article.is_collected)">{{ article.is_collected ? '取消收藏' : '收藏' }} ({{ article.collection_count || 0 }})</button>
       </div>
     </div>
   </div>
@@ -33,7 +32,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['like', 'collect']);
+const emit = defineEmits(['like']);
 
 // 跳转到文章详情页
 const navigateToDetail = () => {

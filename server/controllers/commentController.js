@@ -25,7 +25,7 @@ exports.addComment = async (req, res) => {
   try {
     const articleId = req.params.articleId;
     const { content } = req.body;
-    const userId = req.userId;
+    const userId = req.user.userId;
     
     if (!content) {
       return res.status(400).json({ message: '请提供评论内容' });
@@ -53,7 +53,7 @@ exports.addComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
   try {
     const commentId = req.params.commentId;
-    const userId = req.userId;
+    const userId = req.user.userId;
     
     // 检查评论是否存在且属于当前用户
     const [comments] = await pool.query('SELECT * FROM comments WHERE id = ? AND user_id = ?', [commentId, userId]);

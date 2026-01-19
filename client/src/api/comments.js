@@ -8,16 +8,13 @@
  */
 /* comments.js - 评论相关API
  */
-import { useAuthStore } from '@/stores/authStore'
-
-const BASE_URL = 'http://localhost:3000/api'
+import apiClient from './axios'
 
 // 获取评论列表
 export const fetchComments = async (articleId) => {
   try {
-    const response = await fetch(`${BASE_URL}/articles/${articleId}/comments`)
-    const data = await response.json()
-    return data
+    const response = await apiClient.get(`/articles/${articleId}/comments`)
+    return response.data
   } catch (error) {
     throw new Error('获取评论失败')
   }
@@ -25,22 +22,9 @@ export const fetchComments = async (articleId) => {
 
 // 添加评论
 export const addComment = async (articleId, commentData) => {
-  const authStore = useAuthStore()
-  if (!authStore.isAuthenticated) {
-    throw new Error('请先登录')
-  }
-
   try {
-    const response = await fetch(`${BASE_URL}/articles/${articleId}/comments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(commentData)
-    })
-    const data = await response.json()
-    return data
+    const response = await apiClient.post(`/articles/${articleId}/comments`, commentData)
+    return response.data
   } catch (error) {
     throw new Error('添加评论失败')
   }
@@ -48,20 +32,9 @@ export const addComment = async (articleId, commentData) => {
 
 // 删除评论
 export const deleteComment = async (commentId) => {
-  const authStore = useAuthStore()
-  if (!authStore.isAuthenticated) {
-    throw new Error('请先登录')
-  }
-
   try {
-    const response = await fetch(`${BASE_URL}/comments/${commentId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    const data = await response.json()
-    return data
+    const response = await apiClient.delete(`/comments/${commentId}`)
+    return response.data
   } catch (error) {
     throw new Error('删除评论失败')
   }

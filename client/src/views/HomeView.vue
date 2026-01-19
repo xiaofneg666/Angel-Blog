@@ -32,9 +32,13 @@
         </div>
 
         <!-- 推荐轮播 -->
-        <div class="carousel">
+        <router-link
+          v-if="currentArticle"
+          :to="{ name: 'post-detail', params: { id: currentArticle.id }}"
+          class="carousel"
+        >
           <span class="carousel-badge">推荐</span>
-          <button class="carousel-arrow left" @click="prevRecommended">‹</button>
+          <button class="carousel-arrow left" @click.prevent.stop="prevRecommended">‹</button>
           <img
             :src="getImageUrl(currentArticle?.cover_image)"
             :alt="currentArticle?.title"
@@ -49,8 +53,8 @@
             </div>
             <p class="carousel-excerpt">{{ currentArticle?.excerpt || '暂无摘要' }}</p>
           </div>
-          <button class="carousel-arrow right" @click="nextRecommended">›</button>
-        </div>
+          <button class="carousel-arrow right" @click.prevent.stop="nextRecommended">›</button>
+        </router-link>
 
         <!-- 文章列表（无限滚动） -->
         <div class="article-list">

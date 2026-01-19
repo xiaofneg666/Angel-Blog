@@ -97,17 +97,9 @@
                     :disabled="!authStore.isAuthenticated"
                   >
                     <i class="icon-heart" :class="{ 'filled': articleStore.currentArticle?.is_liked }"></i>
-                    <span>点赞 {{ formatNumber(articleStore.currentArticle?.like_count || 0) }}</span>
+                    <span>点赞 {{ formatNumber(articleStore.currentArticle?.likes_count || 0) }}</span>
                   </button>
-                  <button 
-                    class="action-btn favorite-btn" 
-                    :class="{ 'active': articleStore.currentArticle?.is_favorited }"
-                    @click="handleFavorite"
-                    :disabled="!authStore.isAuthenticated"
-                  >
-                    <i class="icon-star" :class="{ 'filled': articleStore.currentArticle?.is_favorited }"></i>
-                    <span>收藏 {{ formatNumber(articleStore.currentArticle?.favorite_count || 0) }}</span>
-                  </button>
+
                 </div>
                 <div class="action-group" v-if="authStore.isAuthenticated">
               <router-link 
@@ -282,7 +274,26 @@ const fetchArticleDetail = async () => {
         content: processedContent,
         word_count: wordCount,
         publish_time: data.data.publish_time,
-        update_time: data.data.update_time
+        update_time: data.data.update_time,
+        is_liked: false,
+        likes_count: data.data.likes_count || 0
+      }
+
+      // 如果用户已登录，获取点赞状态
+      if (authStore.isAuthenticated) {
+        try {
+          const statusResponse = await fetch(`/api/articles/${route.params.id}/user-status`, {
+            headers: {
+              'Authorization': `Bearer ${authStore.token}`
+            }
+          });
+          const statusData = await statusResponse.json();
+          if (statusData.success) {
+            articleStore.currentArticle.is_liked = statusData.data.is_liked;
+          }
+        } catch (error) {
+          console.error('获取用户文章状态失败:', error);
+        }
       }
       
       // 添加日志查看格式化后的时间
@@ -490,8 +501,10 @@ const handleLike = async () => {
   }
 
   try {
+    const currentLiked = articleStore.currentArticle?.is_liked || false;
+    const method = currentLiked ? 'DELETE' : 'POST';
     const response = await fetch(`/api/articles/${route.params.id}/like`, {
-      method: 'POST',
+      method: method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.token}`
@@ -499,7 +512,7 @@ const handleLike = async () => {
     })
 
     if (!response.ok) {
-      throw new Error('点赞失败')
+      throw new Error(currentLiked ? '取消点赞失败' : '点赞失败')
     }
 
     const data = await response.json()
@@ -507,12 +520,12 @@ const handleLike = async () => {
       // 更新文章数据
       articleStore.currentArticle = {
         ...articleStore.currentArticle,
-        is_liked: !articleStore.currentArticle.is_liked,
-        like_count: articleStore.currentArticle.is_liked 
-          ? articleStore.currentArticle.like_count - 1 
-          : articleStore.currentArticle.like_count + 1
+        is_liked: !currentLiked,
+        likes_count: currentLiked 
+          ? articleStore.currentArticle.likes_count - 1 
+          : articleStore.currentArticle.likes_count + 1
       }
-      ElMessage.success(articleStore.currentArticle.is_liked ? '点赞成功' : '取消点赞')
+      ElMessage.success(currentLiked ? '取消点赞成功' : '点赞成功')
     }
   } catch (error) {
     console.error('点赞操作失败:', error)
@@ -520,43 +533,7 @@ const handleLike = async () => {
   }
 }
 
-// 处理收藏
-const handleFavorite = async () => {
-  if (!authStore.isAuthenticated) {
-    ElMessage.warning('请先登录后再收藏')
-    return
-  }
 
-  try {
-    const response = await fetch(`/api/articles/${route.params.id}/favorite`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('收藏失败')
-    }
-
-    const data = await response.json()
-    if (data.success) {
-      // 更新文章数据
-      articleStore.currentArticle = {
-        ...articleStore.currentArticle,
-        is_favorited: !articleStore.currentArticle.is_favorited,
-        favorite_count: articleStore.currentArticle.is_favorited 
-          ? articleStore.currentArticle.favorite_count - 1 
-          : articleStore.currentArticle.favorite_count + 1
-      }
-      ElMessage.success(articleStore.currentArticle.is_favorited ? '收藏成功' : '取消收藏')
-    }
-  } catch (error) {
-    console.error('收藏操作失败:', error)
-    ElMessage.error('操作失败，请稍后重试')
-  }
-}
 
 // 引入getUserById函数
 import { getUserById } from '@/api/auth';

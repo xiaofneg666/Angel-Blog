@@ -119,7 +119,7 @@ router.post('/articles/:articleId/comments', auth, async (req, res) => {
   try {
     const { content, parent_id, root_id, reply_to_user_id, reply_to_username } = req.body;
     const articleId = req.params.articleId;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const username = req.user.username;
     const avatar = req.user.avatar || null;
 
