@@ -34,3 +34,13 @@ export async function getUserById(userId) {
     throw new Error(error.response?.data?.message || '获取用户信息失败');
   }
 }
+
+// 更新用户信息
+export async function updateUserInfo(userId, userData) {
+  try {
+    const response = await apiClient.put(`${USERS_URL}/${userId}`, userData);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || '更新用户信息失败');
+  }
+}

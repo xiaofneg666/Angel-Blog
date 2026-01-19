@@ -169,16 +169,10 @@ const routes = [
         meta: { title: '评论管理 - 后台管理' }
       },
       { 
-        path: 'categories', 
-        name: 'admin-categories', 
-        component: () => import('@/views/admin/CategoryManagementView.vue'),
-        meta: { title: '分类管理 - 后台管理' }
-      },
-      { 
-        path: 'settings', 
-        name: 'admin-settings', 
-        component: () => import('@/views/admin/SettingsView.vue'),
-        meta: { title: '系统设置 - 后台管理' }
+        path: 'profile', 
+        name: 'admin-profile', 
+        component: () => import('@/views/admin/ProfileView.vue'),
+        meta: { title: '个人资料 - 后台管理' }
       }
     ]
   }

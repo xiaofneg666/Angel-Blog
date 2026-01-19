@@ -40,18 +40,6 @@
               <span class="nav-text" v-if="!isCollapse">评论管理</span>
             </a>
           </li>
-          <li :class="{ 'active': currentRoute === '/admin/categories' }">
-            <a href="#/admin/categories" @click.prevent="navigate('/admin/categories')">
-              <span class="nav-icon">📁</span>
-              <span class="nav-text" v-if="!isCollapse">分类管理</span>
-            </a>
-          </li>
-          <li :class="{ 'active': currentRoute === '/admin/settings' }">
-            <a href="#/admin/settings" @click.prevent="navigate('/admin/settings')">
-              <span class="nav-icon">⚙️</span>
-              <span class="nav-text" v-if="!isCollapse">系统设置</span>
-            </a>
-          </li>
         </ul>
       </nav>
     </aside>
@@ -66,16 +54,13 @@
         <div class="header-right">
           <div class="user-menu">
             <button class="user-btn" @click="toggleUserMenu">
-              <img :src="userInfo.avatar || '/2222.jpg'" alt="用户头像" class="user-avatar">
+              <img :src="getAvatarUrl(userInfo.avatar)" alt="用户头像" class="user-avatar">
               <span class="username">{{ userInfo.username }}</span>
               <span class="caret">▼</span>
             </button>
             <div class="dropdown-menu" v-if="userMenuOpen">
               <a href="#/admin/profile" @click.prevent="navigate('/admin/profile')" class="dropdown-item">
                 <span class="item-icon">👤</span> 个人资料
-              </a>
-              <a href="#/admin/settings" @click.prevent="navigate('/admin/settings')" class="dropdown-item">
-                <span class="item-icon">⚙️</span> 账户设置
               </a>
               <div class="dropdown-divider"></div>
               <a href="#" @click.prevent="logout" class="dropdown-item logout">
@@ -95,23 +80,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-const userInfo = ref(authStore.user);
+const userInfo = computed(() => authStore.user || {});
 const isCollapse = ref(false);
 const sidebarVisible = ref(true);
 const userMenuOpen = ref(false);
 const currentRoute = ref(route.path);
 
 // 检查管理员权限
-onMounted(() => {
+onMounted(async () => {
   if (!authStore.isAuthenticated || authStore.user?.role !== 'admin') {
     router.push('/login');
+    return;
+  }
+  
+  // 初始化时获取完整用户信息，确保包含avatar字段
+  try {
+    const { getUserById } = await import('@/api/auth');
+    if (authStore.user?.id) {
+      const userData = await getUserById(authStore.user.id);
+      authStore.updateUser(userData);
+      console.log('获取完整用户信息成功:', userData);
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
   }
 
   // 监听窗口大小，自动折叠侧边栏
@@ -173,6 +171,40 @@ const navigate = (path) => {
 const logout = () => {
   authStore.logout();
   router.push('/login');
+};
+
+// 处理头像URL
+const getAvatarUrl = (avatar) => {
+  console.log('原始头像URL:', avatar);
+  
+  if (!avatar) {
+    console.log('头像为空，返回默认头像');
+    return '/api/head/2222.jpg';
+  }
+  
+  // 如果头像已经是完整URL，直接返回
+  if (avatar.startsWith('http')) {
+    console.log('头像已经是完整URL，直接返回');
+    return avatar;
+  }
+  
+  // 如果头像已经以/api开头，直接返回
+  if (avatar.startsWith('/api')) {
+    console.log('头像已经以/api开头，直接返回');
+    return avatar;
+  }
+  
+  // 如果头像以/开头，添加/api前缀
+  if (avatar.startsWith('/')) {
+    const result = `/api${avatar}`;
+    console.log('头像以/开头，添加/api前缀后:', result);
+    return result;
+  }
+  
+  // 否则，添加/api/head前缀
+  const result = `/api/head/${avatar}`;
+  console.log('添加/api/head前缀后:', result);
+  return result;
 };
 </script>
 
