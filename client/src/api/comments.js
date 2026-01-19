@@ -20,6 +20,16 @@ export const fetchComments = async (articleId) => {
   }
 }
 
+// 获取所有评论（用于后台管理）
+export const fetchAllComments = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/comments', { params })
+    return response.data
+  } catch (error) {
+    throw new Error('获取所有评论失败')
+  }
+}
+
 // 添加评论
 export const addComment = async (articleId, commentData) => {
   try {

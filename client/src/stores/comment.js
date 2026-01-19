@@ -8,19 +8,27 @@
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchComments, addComment, deleteComment } from '@/api/comments'
+import { fetchComments, fetchAllComments, addComment, deleteComment } from '@/api/comments'
 
 export const useCommentStore = defineStore('comment', () => {
   const comments = ref([])
   const loading = ref(false)
   const error = ref(null)
 
-  // 获取评论列表
-  const getComments = async (articleId) => {
+  // 获取评论列表（支持获取单篇文章评论或所有评论）
+  const getComments = async (articleId = null, params = {}) => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetchComments(articleId)
+      let response
+      if (articleId) {
+        // 获取单篇文章的评论
+        response = await fetchComments(articleId)
+      } else {
+        // 获取所有评论（用于后台管理）
+        response = await fetchAllComments(params)
+      }
+      
       if (response.success) {
         comments.value = response.data
       } else {

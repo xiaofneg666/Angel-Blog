@@ -75,8 +75,8 @@ app.use('/api/sayings', sayingsRouter);
 app.use('/api/articles', articleManagementRoutes);
 app.use('/api/articles', articlesRouter);
 
-// 使用用户管理路由
-app.use('/api/users', userManagementRoutes);
+// 使用用户管理路由（管理员专用）
+app.use('/api/admin/users', userManagementRoutes);
 
 // 配置 head 目录的静态文件服务
 app.use('/api/head', express.static(path.join(__dirname, 'public/head')));

@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../models/db');
 const auth = require('../middleware/auth');
+const commentController = require('../controllers/commentController');
 
 // 获取全站最新评论
 router.get('/comments/latest', async (req, res) => {
@@ -40,6 +41,9 @@ router.get('/comments/latest', async (req, res) => {
     });
   }
 });
+
+// 获取所有评论（用于后台管理）
+router.get('/comments', auth, commentController.getAllComments);
 
 // 获取文章评论
 router.get('/articles/:articleId/comments', async (req, res) => {
@@ -236,36 +240,44 @@ router.delete('/comments/:commentId', auth, async (req, res) => {
     console.log('评论的user_id:', comment.user_id);
     console.log('评论的article_id:', comment.article_id);
     
-    // 检查权限 - 允许文章作者和评论作者删除
+    // 检查权限 - 允许管理员、文章作者和评论作者删除
     if (comment.user_id !== userId) {
-      console.log('当前用户不是评论作者，检查是否是文章作者...');
-      // 检查当前用户是否是文章作者
-      const [articles] = await db.query(
-        'SELECT * FROM articles WHERE id = ? AND user_id = ?',
-        [comment.article_id, userId]
-      );
+      console.log('当前用户不是评论作者，检查是否是文章作者或管理员...');
       
-      console.log('文章查询结果:', articles);
-      
-      if (articles.length === 0) {
-        console.log('当前用户不是文章作者，返回403');
-        return res.status(403).json({
-          success: false,
-          message: '无权限删除该评论',
-          debug: {
-            commentId: commentId,
-            commentUserId: comment.user_id,
-            currentUserId: userId,
-            articleId: comment.article_id,
-            isCommentAuthor: false,
-            isArticleAuthor: articles.length > 0,
-            articleQuery: 'SELECT * FROM articles WHERE id = ? AND user_id = ?',
-            articleQueryParams: [comment.article_id, userId],
-            articleQueryResult: articles
-          }
-        });
+      // 检查当前用户是否是管理员
+      if (req.user.role === 'admin') {
+        console.log('当前用户是管理员，允许删除');
+      } else {
+        // 检查当前用户是否是文章作者
+        const [articles] = await db.query(
+          'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+          [comment.article_id, userId]
+        );
+        
+        console.log('文章查询结果:', articles);
+        
+        if (articles.length === 0) {
+          console.log('当前用户不是文章作者，返回403');
+          return res.status(403).json({
+            success: false,
+            message: '无权限删除该评论',
+            debug: {
+              commentId: commentId,
+              commentUserId: comment.user_id,
+              currentUserId: userId,
+              articleId: comment.article_id,
+              userRole: req.user.role,
+              isCommentAuthor: false,
+              isArticleAuthor: articles.length > 0,
+              isAdmin: req.user.role === 'admin',
+              articleQuery: 'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+              articleQueryParams: [comment.article_id, userId],
+              articleQueryResult: articles
+            }
+          });
+        }
+        console.log('当前用户是文章作者，允许删除');
       }
-      console.log('当前用户是文章作者，允许删除');
     } else {
       console.log('当前用户是评论作者，允许删除');
     }

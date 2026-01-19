@@ -26,11 +26,13 @@ async function initializeDatabase() {
         role ENUM('admin','user') NOT NULL DEFAULT 'user' COMMENT '用户角色',
         avatar VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
         bio TEXT DEFAULT NULL COMMENT '个人简介',
+        status ENUM('active','inactive') NOT NULL DEFAULT 'active' COMMENT '用户状态',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
         UNIQUE KEY username_unique (username),
         UNIQUE KEY email_unique (email),
-        KEY role_index (role)
+        KEY role_index (role),
+        KEY status_index (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表'
     `);
 
@@ -54,6 +56,28 @@ async function initializeDatabase() {
       }
     } catch (error) {
       console.error('添加bio字段失败:', error);
+    }
+
+    // 检查并添加status字段
+    try {
+      // 先检查字段是否存在
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = 'blog_db' 
+        AND TABLE_NAME = 'users' 
+        AND COLUMN_NAME = 'status'
+      `);
+
+      // 如果字段不存在，则添加
+      if (columns.length === 0) {
+        await connection.query('ALTER TABLE users ADD COLUMN status ENUM(\'active\',\'inactive\') NOT NULL DEFAULT \'active\' COMMENT "用户状态"');
+        console.log('status字段添加成功');
+      } else {
+        console.log('status字段已存在');
+      }
+    } catch (error) {
+      console.error('添加status字段失败:', error);
     }
 
     // 2. 文章主表（替换原 posts 表，与 blog_db.sql 一致）

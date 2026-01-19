@@ -49,7 +49,7 @@
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column label="头像" width="80">
         <template #default="{ row }">
-          <el-avatar :size="40" :src="row.avatar">
+          <el-avatar :size="40" :src="getAvatarUrl(row.avatar)">
             {{ row.username.charAt(0).toUpperCase() }}
           </el-avatar>
         </template>
@@ -124,10 +124,30 @@ const searchKeyword = ref('');
 const selectedRole = ref('all');
 const selectedStatus = ref('all');
 
+// 处理头像URL，确保能正确访问
+const getAvatarUrl = (avatar) => {
+  if (!avatar) {
+    return '/api/head/R.jpg'; // 默认头像
+  }
+  
+  // 如果头像路径以/开头，添加/api前缀
+  if (avatar.startsWith('/')) {
+    return `/api${avatar}`;
+  }
+  
+  // 如果已经是完整URL，直接返回
+  if (avatar.startsWith('http')) {
+    return avatar;
+  }
+  
+  // 其他情况，默认添加/api/head/前缀
+  return `/api/head/${avatar}`;
+};
+
 const fetchUsers = async () => {
   try {
     loading.value = true;
-    const response = await axios.get('/api/users/admin', {
+    const response = await axios.get('/api/admin/users', {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value,
@@ -151,7 +171,7 @@ const handleDelete = async (userId) => {
     await ElMessageBox.confirm('确定要删除该用户吗？', '警告', {
       type: 'warning'
     });
-    await axios.delete(`/api/users/admin/${userId}`);
+    await axios.delete(`/api/admin/users/${userId}`);
     ElMessage.success('删除成功');
     fetchUsers();
   } catch (error) {
@@ -164,7 +184,7 @@ const handleDelete = async (userId) => {
 
 const handleStatusChange = async (userId, newStatus) => {
   try {
-    await axios.put(`/api/users/admin/${userId}/status`, { status: newStatus });
+    await axios.put(`/api/admin/users/${userId}/status`, { status: newStatus });
     ElMessage.success('状态更新成功');
     fetchUsers();
   } catch (error) {
