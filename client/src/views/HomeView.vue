@@ -104,32 +104,50 @@
       <!-- 侧边栏 -->
       <aside class="sidebar">
         <div class="profile">
-          <router-link v-if="authStore.user" :to="{ name: 'myhomeview', params: { id: authStore.user.id }}">
-            <img
-              class="profile-pic"
-              :src="getUserAvatar(authStore.user.avatar)"
-              :alt="authStore.user.username || '用户头像'"
-            />
-          </router-link>
-          <div v-else class="profile-pic-container">
-            <img class="profile-pic" :src="getUserAvatar()" alt="默认头像" />
-          </div>
+            <router-link v-if="userInfo" :to="{ name: 'myhomeview', params: { id: userInfo.id }}">
+              <img
+                class="profile-pic"
+                :src="getUserAvatar(userInfo.avatar)"
+                :alt="userInfo.username || '用户头像'"
+              />
+            </router-link>
+            <div v-else class="profile-pic-container">
+              <img class="profile-pic" :src="getUserAvatar()" alt="默认头像" />
+            </div>
 
-          <router-link
-            v-if="authStore.user"
-            :to="{ name: 'myhomeview', params: { id: authStore.user.id }}"
-            class="profile-name"
-          >
-            {{ authStore.user.username || 'Angel' }}
-          </router-link>
-          <div v-else class="profile-name">Angel</div>
+            <router-link
+              v-if="userInfo"
+              :to="{ name: 'myhomeview', params: { id: userInfo.id }}"
+              class="profile-name"
+            >
+              {{ userInfo.username || 'Angel' }}
+            </router-link>
+            <div v-else class="profile-name">Angel</div>
 
-          <div class="profile-info">
-            个人介绍<br />
-            <template v-if="statsLoading">加载中...</template>
-            <template v-else-if="statsError">{{ statsError }}</template>
-            <template v-else>{{ stats.articleCount }} 文章 | {{ stats.categoryCount }} 分类</template>
-          </div>
+            <div class="profile-info">
+              <!-- 调试信息 -->
+              <div style="display: none;">
+                userInfo: {{ JSON.stringify(userInfo) }}
+                <br>
+                userInfo.bio: {{ userInfo.bio }}
+                <br>
+                authStore.user: {{ JSON.stringify(authStore.user) }}
+                <br>
+                authStore.user?.bio: {{ authStore.user?.bio }}
+              </div>
+              
+              <!-- 实际内容 -->
+              <template v-if="authStore.isAuthenticated">
+                <p class="user-bio">{{ (userInfo.bio || authStore.user?.bio) }}</p>
+                <template v-if="statsLoading">加载中...</template>
+                <template v-else-if="statsError">{{ statsError }}</template>
+                <template v-else>{{ userStats.articleCount }} 文章 | {{ userStats.categoryCount }} 分类</template>
+              </template>
+              <template v-else>
+                <p class="user-bio">个人介绍</p>
+                欢迎访问 Angel Blog
+              </template>
+            </div>
           <div class="profile-links">
             <a href="#">🐧</a>
             <a href="#">📧</a>
@@ -194,12 +212,14 @@
 <script setup>
 /* -------------------- 1. 引用 -------------------- */
 import NavBar from '@/components/NavBar.vue'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate, formatUpdateTime, getImageUrl } from '@/utils/format'
+import { getUserById } from '@/api/auth'
 
 /* -------------------- 2. 用户信息 -------------------- */
 const authStore = useAuthStore()
+const userInfo = ref(authStore.user || {})
 
 /* -------------------- 3. 打字名言 -------------------- */
 const displayedText = ref('')
@@ -292,7 +312,7 @@ async function fetchRecommendedArticles() {
 /* -------------------- 6. 无限滚动文章列表 -------------------- */
 const articles = ref([])
 const currentPage = ref(1)
-const pageSize = 5
+const pageSize = 9
 const isLoading = ref(false)
 const noMore = ref(false)
 const loadMoreAnchor = ref(null)
@@ -340,17 +360,41 @@ const stats = ref({
 })
 const statsLoading = ref(false)
 const statsError = ref('')
+// 网站统计数据，始终获取网站整体数据
 async function fetchStats() {
   statsLoading.value = true
   try {
+    // 无论是否登录，网站统计都显示网站整体数据
     const res = await fetch('http://localhost:3000/api/dashboard/stats')
     const json = await res.json()
-    if (json.success) stats.value = json.data
+    if (json.success) {
+      stats.value = json.data
+      console.log('网站统计数据:', stats.value)
+    }
   } catch (e) {
-    console.error('获取统计数据失败:', e)
-    statsError.value = '获取统计数据失败'
+    console.error('获取网站统计数据失败:', e)
+    statsError.value = '获取网站统计数据失败'
   } finally {
     statsLoading.value = false
+  }
+}
+
+// 用户个人统计数据，仅用于个人资料部分
+const userStats = ref({ articleCount: 0, categoryCount: 0 })
+async function fetchUserStats() {
+  if (authStore.user) {
+    try {
+      const res = await fetch(`http://localhost:3000/api/articles/user/${authStore.user.id}/stats`)
+      const json = await res.json()
+      if (json.success && json.data.stats) {
+        userStats.value = {
+          articleCount: json.data.stats.articleCount,
+          categoryCount: json.data.stats.categoryCount || 0
+        }
+      }
+    } catch (e) {
+      console.error('获取用户统计数据失败:', e)
+    }
   }
 }
 
@@ -379,7 +423,7 @@ const comments = ref([
 // 处理用户头像URL
 function getUserAvatar(avatar) {
   if (!avatar) {
-    return '/2222.jpg';
+    return '/api/head/default-avatar.png';
   }
   
   // 检查头像URL是否已经是完整的URL
@@ -387,13 +431,18 @@ function getUserAvatar(avatar) {
     return avatar;
   }
   
-  // 处理相对路径
-  if (avatar.startsWith('/api/') || avatar.startsWith('/head/') || avatar.startsWith('/uploads/')) {
+  // 已经包含/api前缀，直接返回
+  if (avatar.startsWith('/api')) {
     return avatar;
   }
   
-  // 默认情况
-  return `/uploads/${avatar}`;
+  // 以/开头，添加/api前缀
+  if (avatar.startsWith('/')) {
+    return `/api${avatar}`;
+  }
+  
+  // 默认情况，头像存储在head目录下
+  return `/api/head/${avatar}`;
 }
 
 // 截断文本函数
@@ -422,16 +471,58 @@ function handleImageError(e) {
 }
 
 /* -------------------- 9. 生命周期 -------------------- */
-onMounted(() => {
+onMounted(async () => {
   startHeroCarousel()
   fetchRandomSaying()
   fetchRecommendedArticles()
   startRecommendedCarousel()
   fetchArticles()      // 拉第一页
   startIntersection()  // 启动无限滚动
-  fetchStats()
+  fetchStats()         // 获取网站整体统计数据
   fetchComments()      // 获取最新评论
+  
+  // 获取用户相关数据
+  if (authStore.user?.id) {
+    // 1. 获取完整用户信息，包括bio字段
+    try {
+      const response = await fetch(`/api/users/${authStore.user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        // 同时更新authStore和userInfo，确保响应式
+        authStore.updateUser(userData);
+        userInfo.value = userData;
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+    }
+    
+    // 2. 获取用户个人统计数据
+    await fetchUserStats();
+  }
 })
+
+// 监听用户信息变化，重新获取统计数据
+watch(() => authStore.user, async () => {
+  fetchStats() // 更新网站整体统计数据
+  if (authStore.user?.id) {
+    await fetchUserStats() // 更新用户个人统计数据
+  }
+}, { deep: true })
+
+// 监听authStore.user变化，更新userInfo
+watch(() => authStore.user, (newUser) => {
+  if (newUser) {
+    userInfo.value = newUser
+  }
+}, { deep: true })
+
 onBeforeUnmount(() => {
   stopHeroCarousel()
   if (typingInterval) clearInterval(typingInterval)
@@ -811,6 +902,18 @@ onBeforeUnmount(() => {
   color: #888;
   font-size: 1.1em;
   margin-bottom: 10px;
+}
+
+.user-bio {
+  color: #4e5969;
+  margin: 8px 0 12px;
+  line-height: 1.6;
+  font-size: 1em;
+  word-break: break-word;
+}
+
+[data-theme="dark"] .user-bio {
+  color: #b8b8b8;
 }
 .profile-links {
   text-align: center;
