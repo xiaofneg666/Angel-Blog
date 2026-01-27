@@ -1,10 +1,11 @@
 
 
 <template>
+
   <div class="music-player">
     <!-- 背景层 -->
     <div class="background"></div>
-    
+    <NavBar></NavBar>
     <!-- 歌词区域 -->
     <div class="lyrics-container">
       <div class="lyrics">
@@ -103,6 +104,8 @@
 </template>
 
 <script setup>
+// import {ref} from 'vue'
+import NavBar from '@/components/NavBar.vue'
 // 暂时为空，后续添加交互功能
 </script>
 
