@@ -104,7 +104,7 @@
       <!-- 侧边栏 -->
       <aside class="sidebar">
         <div class="profile">
-            <router-link v-if="userInfo" :to="{ name: 'myhomeview', params: { id: userInfo.id }}">
+            <router-link v-if="userInfo && userInfo.id" :to="{ name: 'myhomeview', params: { id: userInfo.id }}">
               <img
                 class="profile-pic"
                 :src="getUserAvatar(userInfo.avatar)"
@@ -116,7 +116,7 @@
             </div>
 
             <router-link
-              v-if="userInfo"
+              v-if="userInfo && userInfo.id"
               :to="{ name: 'myhomeview', params: { id: userInfo.id }}"
               class="profile-name"
             >
