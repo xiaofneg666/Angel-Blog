@@ -437,3 +437,13 @@ Angel-Blog 是一个功能完整、架构清晰的个人博客系统，基于现
 - **学习价值**: 作为全栈开发的示例项目，涵盖了现代 Web 开发的主要技术和实践。
 - **实用价值**: 可直接用作个人博客平台，或基于此进行定制开发。
 - **技术实践**: 展示了如何构建一个完整的前后端分离应用，包括架构设计、功能实现和部署上线。
+
+
+可能会遇到的问题
+1. 依赖缺失问题 ：启动前端开发服务器时出现错误： Cannot find package 'vite' imported from C:\Users\MECHREVO\Desktop\feng\Angel-Blog\client\vite.config.js ，说明前端项目缺少必要的依赖包。
+### 解决方案：
+1. 安装前端依赖 ：在 client 目录下运行 npm install 命令，成功安装了包括 vite 在内的所有前端依赖包。
+2. 安装后端依赖 ：在 server 目录下运行 npm install 命令，成功安装了所有后端依赖包。
+### 现在可以：
+- 在 client 目录运行 npm run dev 启动前端开发服务器
+- 在 server 目录运行 npm run dev 启动后端开发服务器
